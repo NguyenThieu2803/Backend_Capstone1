@@ -17,6 +17,7 @@ app.use(cors());
 app.use(express.json())
 
 
+
 connectDB();
 app.use(routes)
 app.use(authrouter)

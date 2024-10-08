@@ -13,6 +13,13 @@ router.post("/api/v1/addwishlist/", userController.addToWishlist);
 router.get("/api/v1/wishlist/:id", userController.getWishlist);
 router.delete("/api/v1/removecart/", userController.removeFromCart);
 router.delete("/api/v1/removewishlist/", userController.removeFromWishlist);
+router.post("/api/v1/createReview", userController.createReview);
+router.get("/api/v1/getReviewByProduct/:productId", userController.getReviewsByProduct);
+router.put("/api/v1/reviews/:reviewId", userController.updateReview);
+router.get("/api/v1/getProductsByCategory/:categoryId", userController.getProductsByCategory);
+
+
+
 
 
 

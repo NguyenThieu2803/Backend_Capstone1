@@ -4,10 +4,17 @@ const ShoppingCart = require("../model/Usermodel/ShoppingCart");
 const Product = require("../model/Usermodel/Product");
 const authController = require("./auth.controller");
 const Inventory = require("../model/Usermodel/Inventory");
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const Wishlist = require("../model/Usermodel/Wishlist"); // Import Wishlist model
 const WishlistProduct = require("../model/Usermodel/Wishlist_product");
-const { serviceAddToCart, ServiceremoveFromCart } = require("../service/cart.service"); //
+const Review = require("../model/Usermodel/Review");
+const Category = require("../model/Usermodel/Category");
+const multer = require("multer");
+const path = require("path");
+const {
+  serviceAddToCart,
+  ServiceremoveFromCart,
+} = require("../service/cart.service");
 
 const userController = {
   //Get All users
@@ -20,48 +27,81 @@ const userController = {
     }
   },
 
-  createReview: async (req, res) => {
-    try {
-      // Lấy token từ header Authorization
-      // const authHeader = req.headers.authorization;
-      // const token = authHeader && authHeader.split(' ')[1];
+  // Cấu hình Multer để lưu ảnh vào thư mục 'uploads/'
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, "uploads/"); // Thư mục lưu trữ ảnh
+    },
+    filename: function (req, file, cb) {
+      cb(null, Date.now() + path.extname(file.originalname)); // Đặt tên file
+    },
+  }),
 
-      // Xác thực người dùng
-      // const user = await authenticate(token);
-
-      const { userId, productId, rating, comment, isVerifiedPurchase } =
-        req.body;
-
-      // Kiểm tra xem sản phẩm có tồn tại không
-      const product = await Product.findById(productId);
-      if (!product) {
-        return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
-      }
-
-      // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
-      const existingReview = await Review.findOne({
-        product: productId,
-        user: userId,
-      });
-      if (existingReview) {
-        return res
-          .status(400)
-          .json({ message: "Bạn đã đánh giá sản phẩm này trước đó" });
-      }
-
-      // Tạo đánh giá mới
-      const review = await Review.create({
-        product: productId,
-        user: userId,
-        rating,
-        comment,
-        isVerifiedPurchase,
-      });
-
-      res.status(201).json({ message: "Đánh giá được tạo thành công", review });
-    } catch (error) {
-      res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+  // Kiểm tra loại file upload (chỉ cho phép ảnh)
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Chỉ cho phép file ảnh (jpg, jpeg, png)"), false);
     }
+  },
+
+  upload: multer({
+    // storage: storage,
+    // fileFilter: fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn kích thước ảnh 5MB
+  }).array("images", 5), // Tối đa 5 ảnh
+
+  createReview: async (req, res) => {
+    upload(req, res, async function (err) {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ message: err.message });
+      } else if (err) {
+        return res.status(400).json({ message: err.message });
+      }
+
+      try {
+        const { userId, productId, rating, comment, isVerifiedPurchase } =
+          req.body;
+
+        // Kiểm tra xem sản phẩm có tồn tại không
+        const product = await Product.findById(productId);
+        if (!product) {
+          return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+        }
+
+        // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
+        const existingReview = await Review.findOne({
+          product: productId,
+          user: userId,
+        });
+        if (existingReview) {
+          return res
+            .status(400)
+            .json({ message: "Bạn đã đánh giá sản phẩm này trước đó" });
+        }
+
+        // Lấy các đường dẫn của ảnh đã upload
+        const imagePaths = req.files.map((file) => file.path);
+
+        // Tạo đánh giá mới
+        const review = await Review.create({
+          product: productId,
+          user: userId,
+          rating,
+          comment,
+          images: imagePaths, // Lưu đường dẫn của ảnh
+          isVerifiedPurchase,
+        });
+
+        res
+          .status(201)
+          .json({ message: "Đánh giá được tạo thành công", review });
+      } catch (error) {
+        res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+      }
+    });
   },
 
   getReviewsByProduct: async (req, res) => {
@@ -77,7 +117,7 @@ const userController = {
 
       const reviews = await Review.find({ product: productId })
         .populate("user", "user_name email") // Lấy thông tin người dùng nhưng không lấy mật khẩu
-        .sort({ reviewDate: -1 })
+        .sort({ review_date: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
 
@@ -101,9 +141,6 @@ const userController = {
       const { userId, rating, comment, isVerifiedPurchase } = req.body;
 
       const review = await Review.findById(reviewId);
-      console.log(review.user._id.toString());
-      console.log(userId.toString());
-
       if (!review) {
         return res.status(404).json({ message: "Không tìm thấy đánh giá" });
       }
@@ -114,11 +151,19 @@ const userController = {
           .status(403)
           .json({ message: "Bạn không có quyền chỉnh sửa đánh giá này" });
       }
+
       // Cập nhật các trường cần thiết
       if (rating) review.rating = rating;
       if (comment) review.comment = comment;
-      if (typeof isVerifiedPurchase !== "undefined")
+      if (typeof isVerifiedPurchase !== "undefined") {
         review.isVerifiedPurchase = isVerifiedPurchase;
+      }
+
+      // Nếu có upload hình ảnh mới
+      if (req.files && req.files.length > 0) {
+        const newImages = req.files.map((file) => file.path);
+        review.images.push(...newImages); // Thêm ảnh mới vào review
+      }
 
       await review.save();
 
@@ -138,21 +183,53 @@ const userController = {
 
       const review = await Review.findById(reviewId);
 
-      console.log(userId)
-
       if (!review) {
-        return res.status(404).json({ message: 'Không tìm thấy đánh giá' });
+        return res.status(404).json({ message: "Không tìm thấy đánh giá" });
       }
 
       // Kiểm tra xem người dùng có phải là người tạo đánh giá không
       if (review.user._id.toString() !== userId.toString()) {
-        return res.status(403).json({ message: 'Bạn không có quyền xóa đánh giá này' });
+        return res
+          .status(403)
+          .json({ message: "Bạn không có quyền xóa đánh giá này" });
       }
 
       await review.deleteOne();
 
-      res.status(200).json({ message: 'Đánh giá đã được xóa thành công' });
+      res.status(200).json({ message: "Đánh giá đã được xóa thành công" });
     } catch (error) {
+      res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+    }
+  },
+  getProductsByCategory : async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
+  
+      // Kiểm tra sự tồn tại của danh mục
+      const category = await Category.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: 'Không tìm thấy danh mục' });
+      }
+  
+      // Truy vấn sản phẩm theo categoryId với phân trang
+      const products = await Product.find({ category: categoryId })
+        .populate('category', 'name description') // Populate thông tin danh mục
+        .sort({ [sortBy]: order === 'desc' ? -1 : 1 }) // Sắp xếp theo trường và thứ tự
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit));
+  
+      // Đếm tổng số sản phẩm trong danh mục
+      const total = await Product.countDocuments({ category: categoryId });
+  
+      res.status(200).json({
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+        products,
+      });
+    } catch (error) {
+      console.error(error);
       res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
   },
@@ -229,7 +306,11 @@ const userController = {
       }
 
       // Call the service function to remove the item from the cart
-      const result = await ServiceremoveFromCart(userId, productId, quantityToRemove);
+      const result = await ServiceremoveFromCart(
+        userId,
+        productId,
+        quantityToRemove
+      );
 
       if (result.error) {
         return res.status(result.status).json({ message: result.error });
@@ -237,7 +318,6 @@ const userController = {
 
       // Return the updated cart
       res.status(200).json(result.cart);
-
     } catch (error) {
       console.error("Error in removeFromCart controller:", error);
       res.status(500).json({ message: "Server error" });
@@ -255,13 +335,13 @@ const userController = {
   },
   addToWishlist: async (req, res) => {
     try {
-      const userId = req.body.userId;// Get the user ID from the request body
+      const userId = req.body.userId; // Get the user ID from the request body
       const productId = req.body.productId;
 
-      // 1. Fetch the product name 
+      // 1. Fetch the product name
       const product = await Product.findById(productId);
       if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
+        return res.status(404).json({ message: "Product not found" });
       }
 
       // 2. Find or create the user's wishlist
@@ -274,7 +354,7 @@ const userController = {
       const wishlistProduct = new WishlistProduct({
         wishlist_id: wishlist._id,
         product_id: productId,
-        productName: product.name // Store the fetched product name
+        productName: product.name, // Store the fetched product name
       });
       await wishlistProduct.save();
 
@@ -283,8 +363,8 @@ const userController = {
       await wishlist.save();
 
       res.status(201).json({
-        message: 'Product added to wishlist!',
-        wishlist
+        message: "Product added to wishlist!",
+        wishlist,
       });
     } catch (error) {
       // ... error handling ...
@@ -294,21 +374,22 @@ const userController = {
     try {
       const userId = req.params.userId;
 
-      const wishlist = await Wishlist.findOne({ user_id: userId }).populate({//Populate the WishlistProduct documents
-        path: 'products',
+      const wishlist = await Wishlist.findOne({ user_id: userId }).populate({
+        //Populate the WishlistProduct documents
+        path: "products",
         populate: {
-          path: 'product_id',
-          model: 'Product',
-          select: 'name' // Select only the 'name' field from the Product
-        }
+          path: "product_id",
+          model: "Product",
+          select: "name", // Select only the 'name' field from the Product
+        },
       });
 
       if (!wishlist) {
-        return res.status(404).json({ message: 'Wishlist not found' });
+        return res.status(404).json({ message: "Wishlist not found" });
       }
 
       res.status(200).json({ wishlist: wishlist });
-  
+
       res.status(200).json({ wishlist: wishlist });
     } catch (error) {
       // ... error handling ...
@@ -325,7 +406,7 @@ const userController = {
       }
 
       // Find the user's cart
-      let cart = await ShoppingCart.findOne({ user_id: userId });// Find the user's cart
+      let cart = await ShoppingCart.findOne({ user_id: userId }); // Find the user's cart
       if (!cart) {
         return res.status(404).json({ message: "Cart not found" });
       }
@@ -335,13 +416,12 @@ const userController = {
         (item) => item.product.toString() === productId
       );
 
-      if (productIndex === -1) {// Product not found in cart
-        return res
-          .status(404)
-          .json({ message: "Product not found in cart" });
+      if (productIndex === -1) {
+        // Product not found in cart
+        return res.status(404).json({ message: "Product not found in cart" });
       }
 
-      const existingProduct = cart.product[productIndex];// Get the product from the cart
+      const existingProduct = cart.product[productIndex]; // Get the product from the cart
 
       // If removing all or more than existing quantity, remove entirely
       if (quantityToRemove >= existingProduct.quantity) {
@@ -349,18 +429,21 @@ const userController = {
       } else {
         // Otherwise, just decrease the quantity and update total
         existingProduct.quantity -= quantityToRemove;
-        existingProduct.total = existingProduct.quantity * existingProduct.price; 
+        existingProduct.total =
+          existingProduct.quantity * existingProduct.price;
       }
 
       // Save the updated cart
       await cart.save();
-      const updatedCart = await ShoppingCart.findOne({ user_id: userId }).populate('product.product');
+      const updatedCart = await ShoppingCart.findOne({
+        user_id: userId,
+      }).populate("product.product");
 
-    res.status(200).json(updatedCart); //Return the updated cart
+      res.status(200).json(updatedCart); //Return the updated cart
 
       res.status(200).json(cart);
     } catch (error) {
-      console.error("Error removing from cart:", error);// ... error handling ...
+      console.error("Error removing from cart:", error); // ... error handling ...
       res.status(500).json({ message: "Server error" });
     }
   },
@@ -369,45 +452,41 @@ const userController = {
       //console.log("Request Body:", req.body);
       const userId = req.body.userId; // Get the user ID from the request body
       const productId = req.body.productId;
-  
+
       if (!productId) {
         return res.status(400).json({ message: "Product ID is required" });
       }
-  
+
       // Find the user's wishlist
       const wishlist = await Wishlist.findOne({ user_id: userId });
       if (!wishlist) {
         return res.status(404).json({ message: "Wishlist not found" });
       }
-  
+
       // Find the product in the wishlist
-      const productIndex = wishlist.products.findIndex(
-        (item) => {
-          console.log("Item:", item); // Log the entire 'item' object
-          console.log("Item.product_id:", item.product_id); // Log the product_id property
-          if (item && item.product_id) { // Check if both item and item.product_id exist
-            return item.product_id.toString() === productId;
-          } else {
-            return false; // Handle cases where item or item.product_id is undefined
-          }
+      const productIndex = wishlist.products.findIndex((item) => {
+        console.log("Item:", item); // Log the entire 'item' object
+        console.log("Item.product_id:", item.product_id); // Log the product_id property
+        if (item && item.product_id) {
+          // Check if both item and item.product_id exist
+          return item.product_id.toString() === productId;
+        } else {
+          return false; // Handle cases where item or item.product_id is undefined
         }
-      ); 
-  
+      });
+
       // Remove the product from the wishlist
       wishlist.products.splice(productIndex, 1);
-  
+
       // Save the updated wishlist
       await wishlist.save();
-  
+
       res.status(200).json({ message: "Product removed from wishlist" });
     } catch (error) {
-      console.error("Error removing from wishlist:", error);// ... error handling ...
+      console.error("Error removing from wishlist:", error); // ... error handling ...
       res.status(500).json({ message: "Server error" });
     }
   },
-
 };
-
-
 
 module.exports = userController;
