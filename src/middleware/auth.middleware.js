@@ -30,8 +30,8 @@ const authmiddlewareControll = {
 
     },
     //verify admin is authenticated
-    verifyUserandAdmin: (req, res) => { 
-        middlewareControll.verifyUser(req, res,()=>{
+    verifyUserandAdmin: (req, res) => {
+        authmiddlewareControll.verifyUser(req, res,()=>{
             if(req.user._id === User._id || User.admin){
                 next();
             }else{
