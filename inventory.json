@@ -1,0 +1,152 @@
+[
+    {
+      "inventory_id": "INV001",
+      "product_id": "PROD001",
+      "quantity_in_stock": 150
+    },
+    {
+      "inventory_id": "INV002",
+      "product_id": "PROD002",
+      "quantity_in_stock": 200
+    },
+    {
+      "inventory_id": "INV003",
+      "product_id": "PROD003",
+      "quantity_in_stock": 50
+    },
+    {
+      "inventory_id": "INV004",
+      "product_id": "PROD004",
+      "quantity_in_stock": 75
+    },
+    {
+      "inventory_id": "INV005",
+      "product_id": "PROD005",
+      "quantity_in_stock": 120
+    },
+    {
+      "inventory_id": "INV006",
+      "product_id": "PROD006",
+      "quantity_in_stock": 95
+    },
+    {
+      "inventory_id": "INV007",
+      "product_id": "PROD007",
+      "quantity_in_stock": 180
+    },
+    {
+      "inventory_id": "INV008",
+      "product_id": "PROD008",
+      "quantity_in_stock": 30
+    },
+    {
+      "inventory_id": "INV009",
+      "product_id": "PROD009",
+      "quantity_in_stock": 220
+    },
+    {
+      "inventory_id": "INV010",
+      "product_id": "PROD010",
+      "quantity_in_stock": 10
+    },
+    {
+      "inventory_id": "INV011",
+      "product_id": "PROD011",
+      "quantity_in_stock": 300
+    },
+    {
+      "inventory_id": "INV012",
+      "product_id": "PROD012",
+      "quantity_in_stock": 45
+    },
+    {
+      "inventory_id": "INV013",
+      "product_id": "PROD013",
+      "quantity_in_stock": 90
+    },
+    {
+      "inventory_id": "INV014",
+      "product_id": "PROD014",
+      "quantity_in_stock": 65
+    },
+    {
+      "inventory_id": "INV015",
+      "product_id": "PROD015",
+      "quantity_in_stock": 150
+    },
+    {
+      "inventory_id": "INV016",
+      "product_id": "PROD016",
+      "quantity_in_stock": 240
+    },
+    {
+      "inventory_id": "INV017",
+      "product_id": "PROD017",
+      "quantity_in_stock": 100
+    },
+    {
+      "inventory_id": "INV018",
+      "product_id": "PROD018",
+      "quantity_in_stock": 80
+    },
+    {
+      "inventory_id": "INV019",
+      "product_id": "PROD019",
+      "quantity_in_stock": 140
+    },
+    {
+      "inventory_id": "INV020",
+      "product_id": "PROD020",
+      "quantity_in_stock": 95
+    },
+    {
+      "inventory_id": "INV021",
+      "product_id": "PROD021",
+      "quantity_in_stock": 200
+    },
+    {
+      "inventory_id": "INV022",
+      "product_id": "PROD022",
+      "quantity_in_stock": 70
+    },
+    {
+      "inventory_id": "INV023",
+      "product_id": "PROD023",
+      "quantity_in_stock": 60
+    },
+    {
+      "inventory_id": "INV024",
+      "product_id": "PROD024",
+      "quantity_in_stock": 250
+    },
+    {
+      "inventory_id": "INV025",
+      "product_id": "PROD025",
+      "quantity_in_stock": 160
+    },
+    {
+      "inventory_id": "INV026",
+      "product_id": "PROD026",
+      "quantity_in_stock": 130
+    },
+    {
+      "inventory_id": "INV027",
+      "product_id": "PROD027",
+      "quantity_in_stock": 75
+    },
+    {
+      "inventory_id": "INV028",
+      "product_id": "PROD028",
+      "quantity_in_stock": 300
+    },
+    {
+      "inventory_id": "INV029",
+      "product_id": "PROD029",
+      "quantity_in_stock": 85
+    },
+    {
+      "inventory_id": "INV030",
+      "product_id": "PROD030",
+      "quantity_in_stock": 120
+    }
+  ]

@@ -1,0 +1,83 @@
+[
+    {
+      "product": "66f3cddbe5fe3030043f2e74",
+      "user": "6502f3f3c29e5a0012e8c3a7",
+      "rating": 4,
+      "comment": "Sản phẩm tốt, rất đáng tiền!",
+      "helpfulCount": 5,
+      "isVerifiedPurchase": true
+    },
+    {
+      "product": "66f3cde1e5fe3030043f2e75",
+      "user": "6502f3f3c29e5a0012e8c3b1",
+      "rating": 5,
+      "comment": "Bàn làm việc đứng này rất thoải mái khi sử dụng.",
+      "helpfulCount": 3,
+      "isVerifiedPurchase": true
+    },
+    {
+      "product": "66f3cdece5fe3030043f2e77",
+      "user": "6502f3f3c29e5a0012e8c3c5",
+      "rating": 3,
+      "comment": "Ghế ngồi không thoải mái như mong đợi.",
+      "helpfulCount": 2,
+      "isVerifiedPurchase": true
+    },
+    {
+      "product": "66f3cde7e5fe3030043f2e76",
+      "user": "6502f3f3c29e5a0012e8c3e8",
+      "rating": 5,
+      "comment": "Giường ngoài trời rất tuyệt vời cho việc thư giãn.",
+      "helpfulCount": 8,
+      "isVerifiedPurchase": true
+    },
+    {
+      "product": "66f3cddbe5fe3030043f2e74",
+      "user": "6502f3f3c29e5a0012e8c3b7",
+      "rating": 4,
+      "comment": "Giường thoải mái nhưng lắp ráp hơi khó.",
+      "helpfulCount": 6,
+      "isVerifiedPurchase": false
+    },
+    {
+      "product": "66f3cde1e5fe3030043f2e75",
+      "user": "6502f3f3c29e5a0012e8c3f2",
+      "rating": 5,
+      "comment": "Bàn đứng rất tốt, dễ điều chỉnh độ cao.",
+      "helpfulCount": 4,
+      "isVerifiedPurchase": true
+    },
+    {
+      "product": "66f3cdece5fe3030043f2e77",
+      "user": "6502f3f3c29e5a0012e8c3d3",
+      "rating": 2,
+      "comment": "Ghế bị lung lay khi lắp xong.",
+      "helpfulCount": 0,
+      "isVerifiedPurchase": false
+    },
+    {
+      "product": "66f3cde7e5fe3030043f2e76",
+      "user": "6502f3f3c29e5a0012e8c3f7",
+      "rating": 4,
+      "comment": "Giường thư giãn ngoài trời rất đẹp, thoải mái.",
+      "helpfulCount": 7,
+      "isVerifiedPurchase": true
+    },
+    {
+      "product": "66f3cddbe5fe3030043f2e74",
+      "user": "6502f3f3c29e5a0012e8c3f4",
+      "rating": 3,
+      "comment": "Giường tốt nhưng vải bị hư hại nhẹ khi giao.",
+      "helpfulCount": 1,
+      "isVerifiedPurchase": false
+    },
+    {
+      "product": "66f3cdece5fe3030043f2e77",
+      "user": "6502f3f3c29e5a0012e8c3e2",
+      "rating": 4,
+      "comment": "Ghế tốt nhưng hơi mắc so với chất lượng.",
+      "helpfulCount": 3,
+      "isVerifiedPurchase": true
+    }
+  ]
+  
