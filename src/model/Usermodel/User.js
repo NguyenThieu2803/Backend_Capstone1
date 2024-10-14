@@ -22,7 +22,10 @@ const userSchema = mongoose.Schema({
   },
   
   phone_number: String,
-  addresses: String,
+  addresses: {
+    type: [String],  // Array of strings
+    default: []  // Default is an empty array
+  },
   role: Number
 });
 
