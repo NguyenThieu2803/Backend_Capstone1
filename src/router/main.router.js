@@ -8,9 +8,10 @@ router.get("/api/v1/", userController.getAllUsers);
 router.get("/api/v1/getallproduct", userController.getAllProducts);
 router.get("/api/v1/products/:id", userController.getProductById);
 // cart routes
-router.get("/api/v1/cart", userController.getAllCart);
-router.post("/api/v1/cart", userController.addToCart);
-router.delete("/api/v1/removecart/", userController.removeFromCart);
+router.get("/api/v1/cart", authmiddlewareControll.verifyUser, userController.getAllCartbyUser);
+router.post("/api/v1/cart", authmiddlewareControll.verifyUser, userController.addToCart);
+router.delete("/api/v1/removecart/", authmiddlewareControll.verifyUser, userController.removeFromCart);
+router.get("/api/v1/getallcart", userController.getAllCart);
 
 
 //inventory routes

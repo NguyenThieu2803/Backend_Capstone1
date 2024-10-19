@@ -7,7 +7,7 @@ const Inventory = require("../model/Usermodel/Inventory");
 const bcrypt = require('bcryptjs');
 const Wishlist = require("../model/Usermodel/Wishlist"); // Import Wishlist model
 const WishlistProduct = require("../model/Usermodel/Wishlist_product");
-const { serviceAddToCart, ServiceremoveFromCart, ServiceGetallCart } = require("../service/cart.service");
+const { serviceAddToCart, ServiceremoveFromCart, ServiceGetallCartByUser } = require("../service/cart.service");
 const orderService = require("../service/order.service")
 
 const userController = {
@@ -197,8 +197,7 @@ const userController = {
   // Cart controllers
   addToCart: async (req, res) => {
     try {
-      // const userId = req.user.id;
-      const userId = req.body.userid
+      const userId = req.user.id;
       const { productId, quantity } = req.body;
       const user = await User.findById(userId);
       if (!user) {
@@ -271,21 +270,37 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
-  getAllCart: async (req, res) => {
+  getAllCartbyUser: async (req, res) => {
     try {
-      // const userId = req.user.id; // Get the user ID from the request headers
-      const userId = req.body.userid
-      console.log(userId);
-      const cart = await ServiceGetallCart(userId) // Fetch the user's cart
+      // Check if req.user exists
+      if (!req.user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const userId = req.user.id;
+      const cart = await ServiceGetallCartByUser(userId)
+
       if (!cart) {
         return res.status(404).json({ message: "Cart not found" });
       }
-      res.status(200).json(cart); // Return the user's cart
+
+      res.status(200).json(cart);
     } catch (error) {
       console.error("Error fetching cart:", error);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Internal server error", error: error.message });
     }
   },
+  getAllCart: async (req, res) => {
+    try {
+      const cart = await ShoppingCart.find();
+      res.status(200).json(cart);
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+  },
+
+  
 
   // Inventory controllers
   getAllInventory: async (req, res) => {

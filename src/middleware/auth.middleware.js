@@ -10,22 +10,21 @@ const authmiddlewareControll = {
         if(token) {
             try {
                 const accestoken = token.split(' ')[1]
-
                 jwt.verify(accestoken,process.env.JWT_ACCESS_KEY,(err,User) => {
                     if(err) {
-                        res.status(403).json({message: 'token not valid'})
+                        return res.status(403).json({message: 'token not valid'})
                     }
                     console.log(User)
                     req.user = User;
                     next();
                 });
             } catch (error) {   
-                res.status(500).json("error", error)
+                return res.status(500).json("error", error)
             }
 
         }
         else {
-            res.status(401).json({message: 'No access token, authorization denied'})
+            return res.status(401).json({message: 'No access token, authorization denied'})
         }
 
     },

@@ -108,7 +108,7 @@ const Product = require("../model/Usermodel/Product");
     
 
 
-    const ServiceGetallCart = async(userId) => {
+    const ServiceGetallCartByUser = async(userId) => {
         try {
             // Tìm giỏ hàng của người dùng và populate các chi tiết sản phẩm
             const cart = await ShoppingCart.findOne({ user_id: userId }).populate('product.product');
@@ -131,5 +131,5 @@ const Product = require("../model/Usermodel/Product");
 
 
 module.exports = {
-    serviceAddToCart,ServiceremoveFromCart,ServiceGetallCart
+    serviceAddToCart,ServiceremoveFromCart,ServiceGetallCartByUser
 }
