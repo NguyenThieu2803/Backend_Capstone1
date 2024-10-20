@@ -29,15 +29,19 @@ const orderSchema = new mongoose.Schema({
     required: true,
     default: 0,
   },
+  transaction_id: {
+    type: String,
+    default: null
+  },
   order_date: Date,
-  payment_status:{
-    type:String,
+  payment_status: {
+    type: String,
     default: 'Pending'
-  } ,
+  },
   delivery_status: {
-   type:String,
+    type: String,
     default: 'Pending'
   }
-}, { timestamps: true }); 
+}, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

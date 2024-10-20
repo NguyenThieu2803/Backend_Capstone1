@@ -7,6 +7,7 @@ const Inventory = require("../model/Usermodel/Inventory");
 const bcrypt = require("bcryptjs");
 const Wishlist = require("../model/Usermodel/Wishlist"); // Import Wishlist model
 const WishlistProduct = require("../model/Usermodel/Wishlist_product");
+<<<<<<< HEAD
 const Review = require("../model/Usermodel/Review");
 const Category = require("../model/Usermodel/Category");
 const multer = require("multer");
@@ -15,6 +16,10 @@ const {
   serviceAddToCart,
   ServiceremoveFromCart,
 } = require("../service/cart.service");
+=======
+const { serviceAddToCart, ServiceremoveFromCart, ServiceGetallCartByUser } = require("../service/cart.service");
+const orderService = require("../service/order.service")
+>>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
 
 const userController = {
   //Get All users
@@ -240,6 +245,7 @@ createReview: async (req, res) => {
     }
   },
 
+  // Cart controllers
   addToCart: async (req, res) => {
     try {
       const userId = req.user.id;
@@ -269,12 +275,13 @@ createReview: async (req, res) => {
     try {
       const userId = req.body.userId; // Get the user ID from the request body
       const productId = req.body.productId;
-      const quantityToRemove = req.body.quantity || 1; // Default quantity to 1 if not provided
+      const quantityToRemove = req.body.quantity || 1; // Allow specifying quantity, default to 1
 
       if (!productId) {
         return res.status(400).json({ message: "Product ID is required" });
       }
 
+<<<<<<< HEAD
       // Call the service function to remove the item from the cart
       const result = await ServiceremoveFromCart(
         userId,
@@ -288,12 +295,81 @@ createReview: async (req, res) => {
 
       // Return the updated cart
       res.status(200).json(result.cart);
+=======
+      // Find the user's cart
+      let cart = await ShoppingCart.findOne({ user_id: userId });// Find the user's cart
+      if (!cart) {
+        return res.status(404).json({ message: "Cart not found" });
+      }
+
+      // Find the product in the cart
+      const productIndex = cart.product.findIndex(
+        (item) => item.product.toString() === productId
+      );
+
+      if (productIndex === -1) {// Product not found in cart
+        return res
+          .status(404)
+          .json({ message: "Product not found in cart" });
+      }
+
+      const existingProduct = cart.product[productIndex];// Get the product from the cart
+
+      // If removing all or more than existing quantity, remove entirely
+      if (quantityToRemove >= existingProduct.quantity) {
+        cart.product.splice(productIndex, 1);
+      } else {
+        // Otherwise, just decrease the quantity and update total
+        existingProduct.quantity -= quantityToRemove;
+        existingProduct.total = existingProduct.quantity * existingProduct.price;
+      }
+
+      // Save the updated cart
+      await cart.save();
+      const updatedCart = await ShoppingCart.findOne({ user_id: userId }).populate('product.product');
+
+      res.status(200).json(updatedCart); //Return the updated cart
+
+      res.status(200).json(cart);
+>>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
     } catch (error) {
-      console.error("Error in removeFromCart controller:", error);
+      console.error("Error removing from cart:", error);// ... error handling ...
       res.status(500).json({ message: "Server error" });
     }
   },
+  getAllCartbyUser: async (req, res) => {
+    try {
+      // Check if req.user exists
+      if (!req.user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
 
+      const userId = req.user.id;
+      const cart = await ServiceGetallCartByUser(userId)
+
+      if (!cart) {
+        return res.status(404).json({ message: "Cart not found" });
+      }
+
+      res.status(200).json(cart);
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+  },
+  getAllCart: async (req, res) => {
+    try {
+      const cart = await ShoppingCart.find();
+      res.status(200).json(cart);
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+  },
+
+  
+
+  // Inventory controllers
   getAllInventory: async (req, res) => {
     try {
       const inventory = await Inventory.find(); // Fetch all inventory data
@@ -303,6 +379,9 @@ createReview: async (req, res) => {
       res.status(500).json({ message: "Server error" });
     }
   },
+
+
+  // Wishlist controllers
   addToWishlist: async (req, res) => {
     try {
       const userId = req.body.userId; // Get the user ID from the request body
@@ -365,12 +444,8 @@ createReview: async (req, res) => {
       // ... error handling ...
     }
   },
-  removeFromCart: async (req, res) => {
-    try {
-      const userId = req.body.userId; // Get the user ID from the request body
-      const productId = req.body.productId;
-      const quantityToRemove = req.body.quantity || 1; // Allow specifying quantity, default to 1
 
+<<<<<<< HEAD
       if (!productId) {
         return res.status(400).json({ message: "Product ID is required" });
       }
@@ -417,6 +492,8 @@ createReview: async (req, res) => {
       res.status(500).json({ message: "Server error" });
     }
   },
+=======
+>>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
   removeFromWishlist: async (req, res) => {
     try {
       //console.log("Request Body:", req.body);
@@ -443,7 +520,11 @@ createReview: async (req, res) => {
         } else {
           return false; // Handle cases where item or item.product_id is undefined
         }
+<<<<<<< HEAD
       });
+=======
+      );
+>>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
 
       // Remove the product from the wishlist
       wishlist.products.splice(productIndex, 1);
@@ -457,6 +538,77 @@ createReview: async (req, res) => {
       res.status(500).json({ message: "Server error" });
     }
   },
+<<<<<<< HEAD
+=======
+
+  // Order controller
+  CreateOrderController: async (req, res) => {
+    try {
+      const model = {
+        userId: req.body.userId,
+        cardName: req.body.cardName,
+        cardNumber: req.body.cardNumber,
+        cardExMonth: req.body.cardExMonth,
+        cardExYear: req.body.cardExYear,
+        cardCVC: req.body.cardCVC,
+        amount: req.body.amount
+      };
+  
+      const result = await orderService.createOrder(model);  // Use async/await to handle createOrder
+  
+      res.status(200).json({
+        message: "Order placed successfully",
+        data: result
+      });
+  
+    } catch (error) {
+      console.error("Error creating order:", error.message || error);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },  
+  UpdateOrderController: async (req, res) => {
+    try {
+      orderService.updateOrder(req.body, (error, result) => {
+        if (error) {
+          res.status(500).json({ message: "Server error" });
+        }
+        else {
+          res.status(200).send({
+            message: "Order placed successfully",
+            data: result
+          })
+        }
+      })
+    } catch (error) {
+      console.error("Error updating order:", error);
+      res.status(500).json({ message: "Server error" });
+
+    }
+
+  },
+  FindOrderController: async (req, res) => {
+    try {
+      orderService.GetOrder(req.body, (error, result) => {
+        if (error) {
+          res.status(500).json({ message: "Server error" });
+        }
+        else {
+          res.status(200).send({
+            message: "Order placed successfully",
+            data: result
+          })
+        }
+      })
+    } catch (error) {
+      console.error("Error updating order:", error);
+      res.status(500).json({ message: "Server error" });
+
+    }
+
+  }
+
+
+>>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
 };
 
 module.exports = userController;

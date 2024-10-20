@@ -16,7 +16,8 @@ const shoppingCartSchema = new mongoose.Schema({
       discount: Number,
       addedAt: Date,
     }
-  ]
+  ],
+  cartTotal: { type: Number, default: 0 }
 });
 
 module.exports = mongoose.model('ShoppingCart', shoppingCartSchema);
