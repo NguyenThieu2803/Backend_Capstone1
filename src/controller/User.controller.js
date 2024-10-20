@@ -7,19 +7,12 @@ const Inventory = require("../model/Usermodel/Inventory");
 const bcrypt = require("bcryptjs");
 const Wishlist = require("../model/Usermodel/Wishlist"); // Import Wishlist model
 const WishlistProduct = require("../model/Usermodel/Wishlist_product");
-<<<<<<< HEAD
 const Review = require("../model/Usermodel/Review");
 const Category = require("../model/Usermodel/Category");
 const multer = require("multer");
 const path = require("path");
-const {
-  serviceAddToCart,
-  ServiceremoveFromCart,
-} = require("../service/cart.service");
-=======
 const { serviceAddToCart, ServiceremoveFromCart, ServiceGetallCartByUser } = require("../service/cart.service");
 const orderService = require("../service/order.service")
->>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
 
 const userController = {
   //Get All users
@@ -281,21 +274,6 @@ createReview: async (req, res) => {
         return res.status(400).json({ message: "Product ID is required" });
       }
 
-<<<<<<< HEAD
-      // Call the service function to remove the item from the cart
-      const result = await ServiceremoveFromCart(
-        userId,
-        productId,
-        quantityToRemove
-      );
-
-      if (result.error) {
-        return res.status(result.status).json({ message: result.error });
-      }
-
-      // Return the updated cart
-      res.status(200).json(result.cart);
-=======
       // Find the user's cart
       let cart = await ShoppingCart.findOne({ user_id: userId });// Find the user's cart
       if (!cart) {
@@ -331,7 +309,6 @@ createReview: async (req, res) => {
       res.status(200).json(updatedCart); //Return the updated cart
 
       res.status(200).json(cart);
->>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
     } catch (error) {
       console.error("Error removing from cart:", error);// ... error handling ...
       res.status(500).json({ message: "Server error" });
@@ -445,55 +422,6 @@ createReview: async (req, res) => {
     }
   },
 
-<<<<<<< HEAD
-      if (!productId) {
-        return res.status(400).json({ message: "Product ID is required" });
-      }
-
-      // Find the user's cart
-      let cart = await ShoppingCart.findOne({ user_id: userId }); // Find the user's cart
-      if (!cart) {
-        return res.status(404).json({ message: "Cart not found" });
-      }
-
-      // Find the product in the cart
-      const productIndex = cart.product.findIndex(
-        (item) => item.product.toString() === productId
-      );
-
-      if (productIndex === -1) {
-        // Product not found in cart
-        return res.status(404).json({ message: "Product not found in cart" });
-      }
-
-      const existingProduct = cart.product[productIndex]; // Get the product from the cart
-
-      // If removing all or more than existing quantity, remove entirely
-      if (quantityToRemove >= existingProduct.quantity) {
-        cart.product.splice(productIndex, 1);
-      } else {
-        // Otherwise, just decrease the quantity and update total
-        existingProduct.quantity -= quantityToRemove;
-        existingProduct.total =
-          existingProduct.quantity * existingProduct.price;
-      }
-
-      // Save the updated cart
-      await cart.save();
-      const updatedCart = await ShoppingCart.findOne({
-        user_id: userId,
-      }).populate("product.product");
-
-      res.status(200).json(updatedCart); //Return the updated cart
-
-      res.status(200).json(cart);
-    } catch (error) {
-      console.error("Error removing from cart:", error); // ... error handling ...
-      res.status(500).json({ message: "Server error" });
-    }
-  },
-=======
->>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
   removeFromWishlist: async (req, res) => {
     try {
       //console.log("Request Body:", req.body);
@@ -520,11 +448,7 @@ createReview: async (req, res) => {
         } else {
           return false; // Handle cases where item or item.product_id is undefined
         }
-<<<<<<< HEAD
       });
-=======
-      );
->>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
 
       // Remove the product from the wishlist
       wishlist.products.splice(productIndex, 1);
@@ -538,8 +462,6 @@ createReview: async (req, res) => {
       res.status(500).json({ message: "Server error" });
     }
   },
-<<<<<<< HEAD
-=======
 
   // Order controller
   CreateOrderController: async (req, res) => {
@@ -608,7 +530,6 @@ createReview: async (req, res) => {
   }
 
 
->>>>>>> 40a1cacb06b32361ea1127bf7f06b351c00951a7
 };
 
 module.exports = userController;
