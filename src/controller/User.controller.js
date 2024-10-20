@@ -27,82 +27,52 @@ const userController = {
     }
   },
 
-  // Cấu hình Multer để lưu ảnh vào thư mục 'uploads/'
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, "uploads/"); // Thư mục lưu trữ ảnh
-    },
-    filename: function (req, file, cb) {
-      cb(null, Date.now() + path.extname(file.originalname)); // Đặt tên file
-    },
-  }),
+createReview: async (req, res) => {
+  try {
+    // Lấy token từ header Authorization
+    // const authHeader = req.headers.authorization;
+    // const token = authHeader && authHeader.split(' ')[1];
 
-  // Kiểm tra loại file upload (chỉ cho phép ảnh)
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Chỉ cho phép file ảnh (jpg, jpeg, png)"), false);
+    // Xác thực người dùng
+    // const user = await authenticate(token);
+    const fileData = req.files || [req.file];
+    console.log(fileData)
+    const { userId, productId, rating, comment, isVerifiedPurchase } = req.body;
+    const images = fileData ? fileData.map(file => file.path) : [];
+    console.log(images);
+
+    // Kiểm tra xem sản phẩm có tồn tại không
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
-  },
 
-  upload: multer({
-    // storage: storage,
-    // fileFilter: fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn kích thước ảnh 5MB
-  }).array("images", 5), // Tối đa 5 ảnh
-
-  createReview: async (req, res) => {
-    upload(req, res, async function (err) {
-      if (err instanceof multer.MulterError) {
-        return res.status(400).json({ message: err.message });
-      } else if (err) {
-        return res.status(400).json({ message: err.message });
-      }
-
-      try {
-        const { userId, productId, rating, comment, isVerifiedPurchase } =
-          req.body;
-
-        // Kiểm tra xem sản phẩm có tồn tại không
-        const product = await Product.findById(productId);
-        if (!product) {
-          return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
-        }
-
-        // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
-        const existingReview = await Review.findOne({
-          product: productId,
-          user: userId,
-        });
-        if (existingReview) {
-          return res
-            .status(400)
-            .json({ message: "Bạn đã đánh giá sản phẩm này trước đó" });
-        }
-
-        // Lấy các đường dẫn của ảnh đã upload
-        const imagePaths = req.files.map((file) => file.path);
-
-        // Tạo đánh giá mới
-        const review = await Review.create({
-          product: productId,
-          user: userId,
-          rating,
-          comment,
-          images: imagePaths, // Lưu đường dẫn của ảnh
-          isVerifiedPurchase,
-        });
-
-        res
-          .status(201)
-          .json({ message: "Đánh giá được tạo thành công", review });
-      } catch (error) {
-        res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
-      }
+    // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
+    const existingReview = await Review.findOne({
+      product: productId,
+      user: userId,
     });
-  },
+    if (existingReview) {
+      return res
+        .status(400)
+        .json({ message: "Bạn đã đánh giá sản phẩm này trước đó" });
+    }
+
+    // Tạo đánh giá mới
+    const review = await Review.create({
+      product_id: productId,
+      user_id: userId,
+      rating,
+      comment,
+      images,
+      isVerifiedPurchase,
+    });
+
+    res.status(201).json({ message: "Đánh giá được tạo thành công", review });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+  }
+},
 
   getReviewsByProduct: async (req, res) => {
     try {
