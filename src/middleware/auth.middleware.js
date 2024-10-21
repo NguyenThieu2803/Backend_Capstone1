@@ -6,7 +6,8 @@ const User = require('../model/Usermodel/User');
 const authmiddlewareControll = {
     //verify user is authenticated
     verifyUser: async (req,res,next) => {
-        const token = req.headers.token
+        const token = req.headers.authorization
+        console.log(token)
         if(token) {
             try {
                 const accestoken = token.split(' ')[1]
