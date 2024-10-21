@@ -11,8 +11,10 @@ router.get("/api/v1/products/:id", userController.getProductById);
 // cart routes
 router.get("/api/v1/cart", authmiddlewareControll.verifyUser, userController.getAllCartbyUser);
 router.post("/api/v1/cart", authmiddlewareControll.verifyUser, userController.addToCart);
+router.put("/api/v1/cart", authmiddlewareControll.verifyUser, userController.updateCartItem);
 router.delete("/api/v1/removecart/", authmiddlewareControll.verifyUser, userController.removeFromCart);
 router.get("/api/v1/getallcart", userController.getAllCart);
+router.delete("/api/v1/cart", authmiddlewareControll.verifyUser, userController.deleteCartItem);
 
 
 //inventory routes

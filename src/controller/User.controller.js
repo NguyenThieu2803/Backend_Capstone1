@@ -11,7 +11,7 @@ const Review = require("../model/Usermodel/Review");
 const Category = require("../model/Usermodel/Category");
 const multer = require("multer");
 const path = require("path");
-const { serviceAddToCart, ServiceremoveFromCart, ServiceGetallCartByUser } = require("../service/cart.service");
+const { serviceAddToCart, ServiceGetallCartByUser, serviceUpdateCartItem, serviceDeleteCartItem } = require("../service/cart.service");
 const orderService = require("../service/order.service")
 
 const userController = {
@@ -25,52 +25,52 @@ const userController = {
     }
   },
 
-createReview: async (req, res) => {
-  try {
-    // Lấy token từ header Authorization
-    // const authHeader = req.headers.authorization;
-    // const token = authHeader && authHeader.split(' ')[1];
+  createReview: async (req, res) => {
+    try {
+      // Lấy token từ header Authorization
+      // const authHeader = req.headers.authorization;
+      // const token = authHeader && authHeader.split(' ')[1];
 
-    // Xác thực người dùng
-    // const user = await authenticate(token);
-    const fileData = req.files || [req.file];
-    console.log(fileData)
-    const { userId, productId, rating, comment, isVerifiedPurchase } = req.body;
-    const images = fileData ? fileData.map(file => file.path) : [];
-    console.log(images);
+      // Xác thực người dùng
+      // const user = await authenticate(token);
+      const fileData = req.files || [req.file];
+      console.log(fileData)
+      const { userId, productId, rating, comment, isVerifiedPurchase } = req.body;
+      const images = fileData ? fileData.map(file => file.path) : [];
+      console.log(images);
 
-    // Kiểm tra xem sản phẩm có tồn tại không
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+      // Kiểm tra xem sản phẩm có tồn tại không
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+      }
+
+      // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
+      const existingReview = await Review.findOne({
+        product: productId,
+        user: userId,
+      });
+      if (existingReview) {
+        return res
+          .status(400)
+          .json({ message: "Bạn đã đánh giá sản phẩm này trước đó" });
+      }
+
+      // Tạo đánh giá mới
+      const review = await Review.create({
+        product_id: productId,
+        user_id: userId,
+        rating,
+        comment,
+        images,
+        isVerifiedPurchase,
+      });
+
+      res.status(201).json({ message: "Đánh giá được tạo thành công", review });
+    } catch (error) {
+      res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
     }
-
-    // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
-    const existingReview = await Review.findOne({
-      product: productId,
-      user: userId,
-    });
-    if (existingReview) {
-      return res
-        .status(400)
-        .json({ message: "Bạn đã đánh giá sản phẩm này trước đó" });
-    }
-
-    // Tạo đánh giá mới
-    const review = await Review.create({
-      product_id: productId,
-      user_id: userId,
-      rating,
-      comment,
-      images,
-      isVerifiedPurchase,
-    });
-
-    res.status(201).json({ message: "Đánh giá được tạo thành công", review });
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
-  }
-},
+  },
 
   getReviewsByProduct: async (req, res) => {
     try {
@@ -169,27 +169,27 @@ createReview: async (req, res) => {
       res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
     }
   },
-  getProductsByCategory : async (req, res) => {
+  getProductsByCategory: async (req, res) => {
     try {
       const { categoryId } = req.params;
       const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
-  
+
       // Kiểm tra sự tồn tại của danh mục
       const category = await Category.findById(categoryId);
       if (!category) {
         return res.status(404).json({ message: 'Không tìm thấy danh mục' });
       }
-  
+
       // Truy vấn sản phẩm theo categoryId với phân trang
       const products = await Product.find({ category: categoryId })
         .populate('category', 'name description') // Populate thông tin danh mục
         .sort({ [sortBy]: order === 'desc' ? -1 : 1 }) // Sắp xếp theo trường và thứ tự
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
-  
+
       // Đếm tổng số sản phẩm trong danh mục
       const total = await Product.countDocuments({ category: categoryId });
-  
+
       res.status(200).json({
         total,
         page: parseInt(page),
@@ -343,8 +343,52 @@ createReview: async (req, res) => {
       res.status(500).json({ message: "Internal server error", error: error.message });
     }
   },
+  updateCartItem: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { productId, quantity } = req.body;
 
-  
+      if (!productId || quantity == null) {
+        return res.status(400).json({ message: "Product ID and quantity are required" });
+      }
+
+      const updatedCart = await serviceUpdateCartItem(userId, productId, quantity);
+
+      if (updatedCart.error) {
+        return res.status(updatedCart.status).json({ message: updatedCart.error });
+      }
+
+      res.status(200).json(updatedCart);
+    } catch (error) {
+      console.error("Error updating cart item:", error.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+  deleteCartItem: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { productId } = req.body;
+
+      if (!productId) {
+        return res.status(400).json({ message: "Product ID is required" });
+      }
+
+      const updatedCart = await serviceDeleteCartItem(userId, productId);
+
+      if (updatedCart.error) {
+        return res.status(updatedCart.status).json({ message: updatedCart.error });
+      }
+
+      res.status(200).json(updatedCart);
+    } catch (error) {
+      console.error("Error deleting cart item:", error.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+
+
 
   // Inventory controllers
   getAllInventory: async (req, res) => {
@@ -475,19 +519,19 @@ createReview: async (req, res) => {
         cardCVC: req.body.cardCVC,
         amount: req.body.amount
       };
-  
+
       const result = await orderService.createOrder(model);  // Use async/await to handle createOrder
-  
+
       res.status(200).json({
         message: "Order placed successfully",
         data: result
       });
-  
+
     } catch (error) {
       console.error("Error creating order:", error.message || error);
       res.status(500).json({ message: error.message || "Server error" });
     }
-  },  
+  },
   UpdateOrderController: async (req, res) => {
     try {
       orderService.updateOrder(req.body, (error, result) => {
@@ -527,8 +571,7 @@ createReview: async (req, res) => {
 
     }
 
-  }
-
+  },
 
 };
 
