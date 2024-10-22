@@ -7,9 +7,9 @@ const CartService = require("../service/cart.service");
 
 const createOrder = async (params) => {
     try {
-      const userDB = await User.findOne({ _id: params.userId });
+      const userDB = await User.findById(params.userId);
       if (!userDB) throw new Error('User not found');
-  // console.log(JSON.stringify(userDB));
+
       let stripeCustomerID = userDB.stripeCustomerID;
 
       if (!stripeCustomerID) {
@@ -24,24 +24,24 @@ const createOrder = async (params) => {
   
       const cardDB = await Card.findOne({
         customerId: stripeCustomerID,
-        Cardnumber: params.cardNumber,  // Ensure it matches body input
+        Cardnumber: params.cardNumber,
         cardExpmonth: params.cardExMonth,
         cardExpyears: params.cardExYear,
       });
   
       let cardId;
       if (cardDB) {
-        cardId = cardDB._id;
+        cardId = cardDB.cardId;
       } else {
         const cardResult = await StripeService.addCard({
           Card_name: params.cardName,
-          Card_number: params.cardNumber,
-          Card_exp_month: params.cardExMonth,
-          Card_exp_year: params.cardExYear,
-          Card_cvc: params.cardCVC,
-          customer_Id: stripeCustomerID
+          Cardnumber: params.cardNumber,
+          cardExpmonth: params.cardExMonth,
+          cardExpyears: params.cardExYear,
+          cardCVC: params.cardCVC,
+          customerId: stripeCustomerID
         });
-        cardId = cardResult.card;  // Get cardId properly
+        cardId = cardResult.card;
       }
   
       const paymentIntent = await StripeService.createPaymentIntent({
@@ -51,31 +51,20 @@ const createOrder = async (params) => {
         paymentMethodId: params.paymentMethodId,
       });
   
-      const cartDB = await CartService.ServiceGetallCart({ userId: userDB.id });
+      const cartDB = await CartService.ServiceGetallCartByUser({ userId: userDB._id });
       if (!cartDB) throw new Error('Cart not found');
   
-      const products = [];
-      let grandTotal = 0;
-  
-      cartDB.product.forEach(item => {
-        products.push({
-          productId: item.product._id,
-          name: item.product.name,
-          quantity: item.quantity,
-          price: item.price,
-          total: item.price * item.quantity,
-          discount: item.discount || 0,
-          addedAt: item.addedAt
-        });
-        grandTotal += item.price * item.quantity;
-      });
+      const products = cartDB.product.map(item => ({
+        product: item.product._id,
+        amount: item.price * item.quantity,
+        quantity: item.quantity
+      }));
   
       const order = await Order.create({
-        userId: userDB._id,
-        cardId: cardId,
-        products: products,
-        totalAmount: grandTotal,
-        paymentIntentId: paymentIntent.id
+        user_id: userDB._id,
+        Products: products,
+        total_amount: params.amount,
+        transaction_id: paymentIntent.id
       });
   
       return order;

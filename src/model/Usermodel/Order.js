@@ -33,7 +33,10 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  order_date: Date,
+  order_date: {
+    type: Date,
+    default: Date.now
+  },
   payment_status: {
     type: String,
     default: 'Pending'
