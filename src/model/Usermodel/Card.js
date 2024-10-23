@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const CardSchema = new mongoose.Schema({
-
-    cardname: {
+    user_id: String,
+    Card_name: {
         type: String,
         required: true
     },
-    cardnumber: {
+    Cardnumber: {
         type: String,
         required: true,
         unique: true,
@@ -27,8 +27,12 @@ const CardSchema = new mongoose.Schema({
     customerId: {
         type: String,
         required: true
+    },
+    cardId: {
+        type: String,
+        required: true,
+        unique: true
     }
-});
+}, { timestamps: true });
 
-
-module.exports = mongoose.model('Cards', shoppingCartSchema);
+module.exports = mongoose.model('Card', CardSchema);

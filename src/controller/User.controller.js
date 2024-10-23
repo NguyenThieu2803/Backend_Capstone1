@@ -4,10 +4,17 @@ const ShoppingCart = require("../model/Usermodel/ShoppingCart");
 const Product = require("../model/Usermodel/Product");
 const authController = require("./auth.controller");
 const Inventory = require("../model/Usermodel/Inventory");
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const Wishlist = require("../model/Usermodel/Wishlist"); // Import Wishlist model
 const WishlistProduct = require("../model/Usermodel/Wishlist_product");
-const { serviceAddToCart, ServiceremoveFromCart } = require("../service/cart.service"); //
+const Review = require("../model/Usermodel/Review");
+const Category = require("../model/Usermodel/Category");
+const multer = require("multer");
+const path = require("path");
+const { serviceAddToCart, ServiceGetallCartByUser, serviceUpdateCartItem, serviceDeleteCartItem } = require("../service/cart.service");
+const orderService = require("../service/Order.service"); // Ensure correct import
+const cardService = require("../service/Card.service"); // Ensure correct import
+const addressService = require("../service/Address.service"); // Import address service
 
 const userController = {
   //Get All users
@@ -28,9 +35,11 @@ const userController = {
 
       // Xác thực người dùng
       // const user = await authenticate(token);
-
-      const { userId, productId, rating, comment, isVerifiedPurchase } =
-        req.body;
+      const fileData = req.files || [req.file];
+      console.log(fileData)
+      const { userId, productId, rating, comment, isVerifiedPurchase } = req.body;
+      const images = fileData ? fileData.map(file => file.path) : [];
+      console.log(images);
 
       // Kiểm tra xem sản phẩm có tồn tại không
       const product = await Product.findById(productId);
@@ -51,10 +60,11 @@ const userController = {
 
       // Tạo đánh giá mới
       const review = await Review.create({
-        product: productId,
-        user: userId,
+        product_id: productId,
+        user_id: userId,
         rating,
         comment,
+        images,
         isVerifiedPurchase,
       });
 
@@ -77,7 +87,7 @@ const userController = {
 
       const reviews = await Review.find({ product: productId })
         .populate("user", "user_name email") // Lấy thông tin người dùng nhưng không lấy mật khẩu
-        .sort({ reviewDate: -1 })
+        .sort({ review_date: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
 
@@ -101,9 +111,6 @@ const userController = {
       const { userId, rating, comment, isVerifiedPurchase } = req.body;
 
       const review = await Review.findById(reviewId);
-      console.log(review.user._id.toString());
-      console.log(userId.toString());
-
       if (!review) {
         return res.status(404).json({ message: "Không tìm thấy đánh giá" });
       }
@@ -114,11 +121,19 @@ const userController = {
           .status(403)
           .json({ message: "Bạn không có quyền chỉnh sửa đánh giá này" });
       }
+
       // Cập nhật các trường cần thiết
       if (rating) review.rating = rating;
       if (comment) review.comment = comment;
-      if (typeof isVerifiedPurchase !== "undefined")
+      if (typeof isVerifiedPurchase !== "undefined") {
         review.isVerifiedPurchase = isVerifiedPurchase;
+      }
+
+      // Nếu có upload hình ảnh mới
+      if (req.files && req.files.length > 0) {
+        const newImages = req.files.map((file) => file.path);
+        review.images.push(...newImages); // Thêm ảnh mới vào review
+      }
 
       await review.save();
 
@@ -138,21 +153,53 @@ const userController = {
 
       const review = await Review.findById(reviewId);
 
-      console.log(userId)
-
       if (!review) {
-        return res.status(404).json({ message: 'Không tìm thấy đánh giá' });
+        return res.status(404).json({ message: "Không tìm thấy đánh giá" });
       }
 
       // Kiểm tra xem người dùng có phải là người tạo đánh giá không
       if (review.user._id.toString() !== userId.toString()) {
-        return res.status(403).json({ message: 'Bạn không có quyền xóa đánh giá này' });
+        return res
+          .status(403)
+          .json({ message: "Bạn không có quyền xóa đánh giá này" });
       }
 
       await review.deleteOne();
 
-      res.status(200).json({ message: 'Đánh giá đã được xóa thành công' });
+      res.status(200).json({ message: "Đánh giá đã được xóa thành công" });
     } catch (error) {
+      res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+    }
+  },
+  getProductsByCategory: async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
+
+      // Kiểm tra sự tồn tại của danh mục
+      const category = await Category.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: 'Không tìm thấy danh mục' });
+      }
+
+      // Truy vấn sản phẩm theo categoryId với phân trang
+      const products = await Product.find({ category: categoryId })
+        .populate('category', 'name description') // Populate thông tin danh mục
+        .sort({ [sortBy]: order === 'desc' ? -1 : 1 }) // Sắp xếp theo trường và thứ tự
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit));
+
+      // Đếm tổng số sản phẩm trong danh mục
+      const total = await Product.countDocuments({ category: categoryId });
+
+      res.status(200).json({
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+        products,
+      });
+    } catch (error) {
+      console.error(error);
       res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
   },
@@ -193,6 +240,7 @@ const userController = {
     }
   },
 
+  // Cart controllers
   addToCart: async (req, res) => {
     try {
       const userId = req.user.id;
@@ -216,102 +264,6 @@ const userController = {
       } else {
         res.status(500).json({ message: "Server error" });
       }
-    }
-  },
-  removeFromCart: async (req, res) => {
-    try {
-      const userId = req.body.userId; // Get the user ID from the request body
-      const productId = req.body.productId;
-      const quantityToRemove = req.body.quantity || 1; // Default quantity to 1 if not provided
-
-      if (!productId) {
-        return res.status(400).json({ message: "Product ID is required" });
-      }
-
-      // Call the service function to remove the item from the cart
-      const result = await ServiceremoveFromCart(userId, productId, quantityToRemove);
-
-      if (result.error) {
-        return res.status(result.status).json({ message: result.error });
-      }
-
-      // Return the updated cart
-      res.status(200).json(result.cart);
-
-    } catch (error) {
-      console.error("Error in removeFromCart controller:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  },
-
-  getAllInventory: async (req, res) => {
-    try {
-      const inventory = await Inventory.find(); // Fetch all inventory data
-      res.status(200).json(inventory);
-    } catch (error) {
-      console.error("Error fetching inventory:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  },
-  addToWishlist: async (req, res) => {
-    try {
-      const userId = req.body.userId;// Get the user ID from the request body
-      const productId = req.body.productId;
-
-      // 1. Fetch the product name 
-      const product = await Product.findById(productId);
-      if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
-      }
-
-      // 2. Find or create the user's wishlist
-      let wishlist = await Wishlist.findOne({ user_id: userId });
-      if (!wishlist) {
-        wishlist = new Wishlist({ user_id: userId, products: [] });
-      }
-
-      // 3. Create a new WishlistProduct document WITH the product name
-      const wishlistProduct = new WishlistProduct({
-        wishlist_id: wishlist._id,
-        product_id: productId,
-        productName: product.name // Store the fetched product name
-      });
-      await wishlistProduct.save();
-
-      // 4. Add the WishlistProduct to the Wishlist's products array
-      wishlist.products.push(wishlistProduct._id);
-      await wishlist.save();
-
-      res.status(201).json({
-        message: 'Product added to wishlist!',
-        wishlist
-      });
-    } catch (error) {
-      // ... error handling ...
-    }
-  },
-  getWishlist: async (req, res) => {
-    try {
-      const userId = req.params.userId;
-
-      const wishlist = await Wishlist.findOne({ user_id: userId }).populate({//Populate the WishlistProduct documents
-        path: 'products',
-        populate: {
-          path: 'product_id',
-          model: 'Product',
-          select: 'name' // Select only the 'name' field from the Product
-        }
-      });
-
-      if (!wishlist) {
-        return res.status(404).json({ message: 'Wishlist not found' });
-      }
-
-      res.status(200).json({ wishlist: wishlist });
-  
-      res.status(200).json({ wishlist: wishlist });
-    } catch (error) {
-      // ... error handling ...
     }
   },
   removeFromCart: async (req, res) => {
@@ -349,14 +301,14 @@ const userController = {
       } else {
         // Otherwise, just decrease the quantity and update total
         existingProduct.quantity -= quantityToRemove;
-        existingProduct.total = existingProduct.quantity * existingProduct.price; 
+        existingProduct.total = existingProduct.quantity * existingProduct.price;
       }
 
       // Save the updated cart
       await cart.save();
       const updatedCart = await ShoppingCart.findOne({ user_id: userId }).populate('product.product');
 
-    res.status(200).json(updatedCart); //Return the updated cart
+      res.status(200).json(updatedCart); //Return the updated cart
 
       res.status(200).json(cart);
     } catch (error) {
@@ -364,50 +316,360 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
+  getAllCartbyUser: async (req, res) => {
+    try {
+      // Check if req.user exists
+      if (!req.user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const userId = req.user.id;
+      const cart = await ServiceGetallCartByUser(userId)
+
+      if (!cart) {
+        return res.status(404).json({ message: "Cart not found" });
+      }
+
+      res.status(200).json(cart);
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+  },
+  getAllCart: async (req, res) => {
+    try {
+      const cart = await ShoppingCart.find();
+      res.status(200).json(cart);
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+  },
+  updateCartItem: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { productId, quantity } = req.body;
+
+      if (!productId || quantity == null) {
+        return res.status(400).json({ message: "Product ID and quantity are required" });
+      }
+
+      const updatedCart = await serviceUpdateCartItem(userId, productId, quantity);
+
+      if (updatedCart.error) {
+        return res.status(updatedCart.status).json({ message: updatedCart.error });
+      }
+
+      res.status(200).json(updatedCart);
+    } catch (error) {
+      console.error("Error updating cart item:", error.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+  deleteCartItem: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { productId } = req.body;
+
+      if (!productId) {
+        return res.status(400).json({ message: "Product ID is required" });
+      }
+
+      const updatedCart = await serviceDeleteCartItem(userId, productId);
+
+      if (updatedCart.error) {
+        return res.status(updatedCart.status).json({ message: updatedCart.error });
+      }
+
+      res.status(200).json(updatedCart);
+    } catch (error) {
+      console.error("Error deleting cart item:", error.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+
+
+
+  // Inventory controllers
+  getAllInventory: async (req, res) => {
+    try {
+      const inventory = await Inventory.find(); // Fetch all inventory data
+      res.status(200).json(inventory);
+    } catch (error) {
+      console.error("Error fetching inventory:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+
+  // Wishlist controllers
+  addToWishlist: async (req, res) => {
+    try {
+      const userId = req.body.userId; // Get the user ID from the request body
+      const productId = req.body.productId;
+
+      // 1. Fetch the product name
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      // 2. Find or create the user's wishlist
+      let wishlist = await Wishlist.findOne({ user_id: userId });
+      if (!wishlist) {
+        wishlist = new Wishlist({ user_id: userId, products: [] });
+      }
+
+      // 3. Create a new WishlistProduct document WITH the product name
+      const wishlistProduct = new WishlistProduct({
+        wishlist_id: wishlist._id,
+        product_id: productId,
+        productName: product.name, // Store the fetched product name
+      });
+      await wishlistProduct.save();
+
+      // 4. Add the WishlistProduct to the Wishlist's products array
+      wishlist.products.push(wishlistProduct._id);
+      await wishlist.save();
+
+      res.status(201).json({
+        message: "Product added to wishlist!",
+        wishlist,
+      });
+    } catch (error) {
+      // ... error handling ...
+    }
+  },
+  getWishlist: async (req, res) => {
+    try {
+      const userId = req.params.userId;
+
+      const wishlist = await Wishlist.findOne({ user_id: userId }).populate({
+        //Populate the WishlistProduct documents
+        path: "products",
+        populate: {
+          path: "product_id",
+          model: "Product",
+          select: "name", // Select only the 'name' field from the Product
+        },
+      });
+
+      if (!wishlist) {
+        return res.status(404).json({ message: "Wishlist not found" });
+      }
+
+      res.status(200).json({ wishlist: wishlist });
+
+      res.status(200).json({ wishlist: wishlist });
+    } catch (error) {
+      // ... error handling ...
+    }
+  },
+
   removeFromWishlist: async (req, res) => {
     try {
       //console.log("Request Body:", req.body);
       const userId = req.body.userId; // Get the user ID from the request body
       const productId = req.body.productId;
-  
+
       if (!productId) {
         return res.status(400).json({ message: "Product ID is required" });
       }
-  
+
       // Find the user's wishlist
       const wishlist = await Wishlist.findOne({ user_id: userId });
       if (!wishlist) {
         return res.status(404).json({ message: "Wishlist not found" });
       }
-  
+
       // Find the product in the wishlist
-      const productIndex = wishlist.products.findIndex(
-        (item) => {
-          console.log("Item:", item); // Log the entire 'item' object
-          console.log("Item.product_id:", item.product_id); // Log the product_id property
-          if (item && item.product_id) { // Check if both item and item.product_id exist
-            return item.product_id.toString() === productId;
-          } else {
-            return false; // Handle cases where item or item.product_id is undefined
-          }
+      const productIndex = wishlist.products.findIndex((item) => {
+        console.log("Item:", item); // Log the entire 'item' object
+        console.log("Item.product_id:", item.product_id); // Log the product_id property
+        if (item && item.product_id) {
+          // Check if both item and item.product_id exist
+          return item.product_id.toString() === productId;
+        } else {
+          return false; // Handle cases where item or item.product_id is undefined
         }
-      ); 
-  
+      });
+
       // Remove the product from the wishlist
       wishlist.products.splice(productIndex, 1);
-  
+
       // Save the updated wishlist
       await wishlist.save();
-  
+
       res.status(200).json({ message: "Product removed from wishlist" });
     } catch (error) {
-      console.error("Error removing from wishlist:", error);// ... error handling ...
+      console.error("Error removing from wishlist:", error); // ... error handling ...
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+  // Order controller
+  CreateOrderController: async (req, res) => {
+    try {
+      const model = {
+        userId: req.body.userId,
+        cardName: req.body.cardName,
+        cardNumber: req.body.cardNumber,
+        cardExMonth: req.body.cardExMonth,
+        cardExYear: req.body.cardExYear,
+        cardCVC: req.body.cardCVC,
+        amount: req.body.amount,
+        paymentMethodId: req.body.paymentMethodId // Ensure this is passed
+      };
+
+      const result = await orderService.createOrder(model);
+
+      res.status(200).json({
+        message: "Order placed successfully",
+        data: result
+      });
+
+    } catch (error) {
+      console.error("Error creating order:", error.message || error);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+  UpdateOrderController: async (req, res) => {
+    try {
+      orderService.updateOrder(req.body, (error, result) => {
+        if (error) {
+          res.status(500).json({ message: "Server error" });
+        }
+        else {
+          res.status(200).send({
+            message: "Order placed successfully",
+            data: result
+          })
+        }
+      })
+    } catch (error) {
+      console.error("Error updating order:", error);
+      res.status(500).json({ message: "Server error" });
+
+    }
+
+  },
+  FindOrderController: async (req, res) => {
+    try {
+      orderService.GetOrder(req.body, (error, result) => {
+        if (error) {
+          res.status(500).json({ message: "Server error" });
+        }
+        else {
+          res.status(200).send({
+            message: "Order placed successfully",
+            data: result
+          })
+        }
+      })
+    } catch (error) {
+      console.error("Error updating order:", error);
+      res.status(500).json({ message: "Server error" });
+
+    }
+
+  },
+
+  addCard: async (req, res) => {
+    try {
+      const cardData = {
+        ...req.body,
+        user_id: req.user._id // Use user_id from authenticated user
+      };
+      const card = await cardService.addCard(cardData);
+      res.status(201).json({ message: "Card added successfully", card });
+    } catch (error) {
+      console.error("Error adding card:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  updateCard: async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const card = await cardService.updateCard(req.user._id, cardId, req.body);
+      res.status(200).json({ message: "Card updated successfully", card });
+    } catch (error) {
+      console.error("Error updating card:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  deleteCard: async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      await cardService.deleteCard(req.user._id, cardId);
+      res.status(200).json({ message: "Card deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting card:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  getAllCards: async (req, res) => {
+    try {
+      const cards = await cardService.getAllCards(req.user._id);
+      res.status(200).json({ message: "Cards retrieved successfully", cards });
+    } catch (error) {
+      console.error("Error retrieving cards:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+
+  // Address controller
+  addAddress: async (req, res) => {
+    try {
+      const addressData = {
+        ...req.body,
+        user_id: req.user._id // Use user_id from authenticated user
+      };
+      const address = await addressService.addAddress(addressData);
+      res.status(201).json({ message: "Address added successfully", address });
+    } catch (error) {
+      console.error("Error adding address:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  updateAddress: async (req, res) => {
+    try {
+      const { addressId } = req.body;
+      const address = await addressService.updateAddress(req.user._id, addressId, req.body);
+      res.status(200).json({ message: "Address updated successfully", address });
+    } catch (error) {
+      console.error("Error updating address:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  deleteAddress: async (req, res) => {
+    try {
+      const { addressId } = req.body;
+      await addressService.deleteAddress(req.user._id, addressId);
+      res.status(200).json({ message: "Address deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting address:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  getAllAddresses: async (req, res) => {
+    try {
+      const addresses = await addressService.getAllAddresses(req.user._id);
+      res.status(200).json({ message: "Addresses retrieved successfully", addresses });
+    } catch (error) {
+      console.error("Error retrieving addresses:", error.message);
       res.status(500).json({ message: "Server error" });
     }
   },
 
 };
-
-
 
 module.exports = userController;
