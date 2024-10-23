@@ -30,4 +30,5 @@ const CardSchema = new mongoose.Schema({
     }
 });
 
+
 module.exports = mongoose.model('Cards', shoppingCartSchema);
