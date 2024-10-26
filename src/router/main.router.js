@@ -50,6 +50,6 @@ router.get("/api/v1/cards", authmiddlewareControll.verifyUser, userController.ge
 router.post("/api/v1/address", authmiddlewareControll.verifyUser, userController.addAddress);
 router.put("/api/v1/address", authmiddlewareControll.verifyUser, userController.updateAddress);
 router.delete("/api/v1/address", authmiddlewareControll.verifyUser, userController.deleteAddress);
-router.get("/api/v1/addresses", authmiddlewareControll.verifyUser, userController.getAllAddresses);
+router.get("/api/v1/address", authmiddlewareControll.verifyUser, userController.getAllAddresses);
 
 module.exports = router;

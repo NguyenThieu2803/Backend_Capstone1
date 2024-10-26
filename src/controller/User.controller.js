@@ -580,7 +580,7 @@ const userController = {
     try {
       const cardData = {
         ...req.body,
-        user_id: req.user._id // Use user_id from authenticated user
+        user_id: req.user.id // Use user_id from authenticated user
       };
       const card = await cardService.addCard(cardData);
       res.status(201).json({ message: "Card added successfully", card });
@@ -593,7 +593,7 @@ const userController = {
   updateCard: async (req, res) => {
     try {
       const { cardId } = req.params;
-      const card = await cardService.updateCard(req.user._id, cardId, req.body);
+      const card = await cardService.updateCard(req.user.id, cardId, req.body);
       res.status(200).json({ message: "Card updated successfully", card });
     } catch (error) {
       console.error("Error updating card:", error.message);
@@ -604,7 +604,7 @@ const userController = {
   deleteCard: async (req, res) => {
     try {
       const { cardId } = req.params;
-      await cardService.deleteCard(req.user._id, cardId);
+      await cardService.deleteCard(req.user.id, cardId);
       res.status(200).json({ message: "Card deleted successfully" });
     } catch (error) {
       console.error("Error deleting card:", error.message);
@@ -614,7 +614,7 @@ const userController = {
 
   getAllCards: async (req, res) => {
     try {
-      const cards = await cardService.getAllCards(req.user._id);
+      const cards = await cardService.getAllCards(req.user.id);
       res.status(200).json({ message: "Cards retrieved successfully", cards });
     } catch (error) {
       console.error("Error retrieving cards:", error.message);
@@ -628,7 +628,7 @@ const userController = {
     try {
       const addressData = {
         ...req.body,
-        user_id: req.user._id // Use user_id from authenticated user
+        user_id: req.user.id // Use user_id from authenticated user
       };
       const address = await addressService.addAddress(addressData);
       res.status(201).json({ message: "Address added successfully", address });
@@ -641,7 +641,7 @@ const userController = {
   updateAddress: async (req, res) => {
     try {
       const { addressId } = req.body;
-      const address = await addressService.updateAddress(req.user._id, addressId, req.body);
+      const address = await addressService.updateAddress(req.user.id, addressId, req.body);
       res.status(200).json({ message: "Address updated successfully", address });
     } catch (error) {
       console.error("Error updating address:", error.message);
@@ -652,7 +652,7 @@ const userController = {
   deleteAddress: async (req, res) => {
     try {
       const { addressId } = req.body;
-      await addressService.deleteAddress(req.user._id, addressId);
+      await addressService.deleteAddress(req.user.id, addressId);
       res.status(200).json({ message: "Address deleted successfully" });
     } catch (error) {
       console.error("Error deleting address:", error.message);
@@ -662,7 +662,7 @@ const userController = {
 
   getAllAddresses: async (req, res) => {
     try {
-      const addresses = await addressService.getAllAddresses(req.user._id);
+      const addresses = await addressService.getAllAddresses(req.user.id);
       res.status(200).json({ message: "Addresses retrieved successfully", addresses });
     } catch (error) {
       console.error("Error retrieving addresses:", error.message);
