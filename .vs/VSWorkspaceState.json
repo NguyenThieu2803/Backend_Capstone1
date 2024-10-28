@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\src",
+    "\\src\\config",
+    "\\src\\controller",
+    "\\src\\middleware",
+    "\\src\\model",
+    "\\src\\model\\Usermodel",
+    "\\src\\router",
+    "\\src\\service"
+  ],
+  "SelectedNode": "\\package.json",
+  "PreviewInSolutionExplorer": false
+}

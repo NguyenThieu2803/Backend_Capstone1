@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const CardSchema = new mongoose.Schema({
-
+    user_id: String,
     Card_name: {
         type: String,
         required: true
@@ -33,6 +33,6 @@ const CardSchema = new mongoose.Schema({
         required: true,
         unique: true
     }
-},{ timestamps: true }); 
+}, { timestamps: true });
 
-module.exports = mongoose.model('Cards', CardSchema);
+module.exports = mongoose.model('Card', CardSchema);

@@ -11,8 +11,10 @@ const Review = require("../model/Usermodel/Review");
 const Category = require("../model/Usermodel/Category");
 const multer = require("multer");
 const path = require("path");
-const { serviceAddToCart, ServiceremoveFromCart, ServiceGetallCartByUser } = require("../service/cart.service");
-const orderService = require("../service/order.service")
+const { serviceAddToCart, ServiceGetallCartByUser, serviceUpdateCartItem, serviceDeleteCartItem } = require("../service/cart.service");
+const orderService = require("../service/Order.service"); // Ensure correct import
+const cardService = require("../service/Card.service"); // Ensure correct import
+const addressService = require("../service/Address.service"); // Import address service
 
 const userController = {
   //Get All users
@@ -333,7 +335,49 @@ const userController = {
         .json({ message: "Internal server error", error: error.message });
     }
   },
+  updateCartItem: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { productId, quantity } = req.body;
 
+      if (!productId || quantity == null) {
+        return res.status(400).json({ message: "Product ID and quantity are required" });
+      }
+
+      const updatedCart = await serviceUpdateCartItem(userId, productId, quantity);
+
+      if (updatedCart.error) {
+        return res.status(updatedCart.status).json({ message: updatedCart.error });
+      }
+
+      res.status(200).json(updatedCart);
+    } catch (error) {
+      console.error("Error updating cart item:", error.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+  deleteCartItem: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { productId } = req.body;
+
+      if (!productId) {
+        return res.status(400).json({ message: "Product ID is required" });
+      }
+
+      const updatedCart = await serviceDeleteCartItem(userId, productId);
+
+      if (updatedCart.error) {
+        return res.status(updatedCart.status).json({ message: updatedCart.error });
+      }
+
+      res.status(200).json(updatedCart);
+    } catch (error) {
+      console.error("Error deleting cart item:", error.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
   // Inventory controllers
   getAllInventory: async (req, res) => {
     try {
@@ -461,9 +505,10 @@ const userController = {
         cardExYear: req.body.cardExYear,
         cardCVC: req.body.cardCVC,
         amount: req.body.amount,
+        paymentMethodId: req.body.paymentMethodId // Ensure this is passed
       };
 
-      const result = await orderService.createOrder(model); // Use async/await to handle createOrder
+      const result = await orderService.createOrder(model);
 
       res.status(200).json({
         message: "Order placed successfully",
@@ -518,7 +563,6 @@ const userController = {
       if (!category) {
         return res.status(404).json({ message: "Category not found" });
       }
-
       // Lấy sản phẩm theo category
       const products = await Product.find({ category: categoryId })
         .populate('category')
@@ -536,7 +580,102 @@ const userController = {
         error: error.message
       });
     }
-  }
+  },
+
+  addCard: async (req, res) => {
+    try {
+      const cardData = {
+        ...req.body,
+        user_id: req.user.id // Use user_id from authenticated user
+      };
+      const card = await cardService.addCard(cardData);
+      res.status(201).json({ message: "Card added successfully", card });
+    } catch (error) {
+      console.error("Error adding card:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  updateCard: async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const card = await cardService.updateCard(req.user.id, cardId, req.body);
+      res.status(200).json({ message: "Card updated successfully", card });
+    } catch (error) {
+      console.error("Error updating card:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  deleteCard: async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      await cardService.deleteCard(req.user.id, cardId);
+      res.status(200).json({ message: "Card deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting card:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  getAllCards: async (req, res) => {
+    try {
+      const cards = await cardService.getAllCards(req.user.id);
+      res.status(200).json({ message: "Cards retrieved successfully", cards });
+    } catch (error) {
+      console.error("Error retrieving cards:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+
+  // Address controller
+  addAddress: async (req, res) => {
+    try {
+      const addressData = {
+        ...req.body,
+        user_id: req.user.id // Use user_id from authenticated user
+      };
+      const address = await addressService.addAddress(addressData);
+      res.status(201).json({ message: "Address added successfully", address });
+    } catch (error) {
+      console.error("Error adding address:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  updateAddress: async (req, res) => {
+    try {
+      const { addressId } = req.body;
+      const address = await addressService.updateAddress(req.user.id, addressId, req.body);
+      res.status(200).json({ message: "Address updated successfully", address });
+    } catch (error) {
+      console.error("Error updating address:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  deleteAddress: async (req, res) => {
+    try {
+      const { addressId } = req.body;
+      await addressService.deleteAddress(req.user.id, addressId);
+      res.status(200).json({ message: "Address deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting address:", error.message);
+      res.status(500).json({ message: error.message || "Server error" });
+    }
+  },
+
+  getAllAddresses: async (req, res) => {
+    try {
+      const addresses = await addressService.getAllAddresses(req.user.id);
+      res.status(200).json({ message: "Addresses retrieved successfully", addresses });
+    } catch (error) {
+      console.error("Error retrieving addresses:", error.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
 };
 
 module.exports = userController;
