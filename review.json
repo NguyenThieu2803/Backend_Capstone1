@@ -1,83 +1,82 @@
 [
-    {
-      "product": "66f3cddbe5fe3030043f2e74",
-      "user": "6502f3f3c29e5a0012e8c3a7",
-      "rating": 4,
-      "comment": "Sản phẩm tốt, rất đáng tiền!",
-      "helpfulCount": 5,
-      "isVerifiedPurchase": true
-    },
-    {
-      "product": "66f3cde1e5fe3030043f2e75",
-      "user": "6502f3f3c29e5a0012e8c3b1",
-      "rating": 5,
-      "comment": "Bàn làm việc đứng này rất thoải mái khi sử dụng.",
-      "helpfulCount": 3,
-      "isVerifiedPurchase": true
-    },
-    {
-      "product": "66f3cdece5fe3030043f2e77",
-      "user": "6502f3f3c29e5a0012e8c3c5",
-      "rating": 3,
-      "comment": "Ghế ngồi không thoải mái như mong đợi.",
-      "helpfulCount": 2,
-      "isVerifiedPurchase": true
-    },
-    {
-      "product": "66f3cde7e5fe3030043f2e76",
-      "user": "6502f3f3c29e5a0012e8c3e8",
-      "rating": 5,
-      "comment": "Giường ngoài trời rất tuyệt vời cho việc thư giãn.",
-      "helpfulCount": 8,
-      "isVerifiedPurchase": true
-    },
-    {
-      "product": "66f3cddbe5fe3030043f2e74",
-      "user": "6502f3f3c29e5a0012e8c3b7",
-      "rating": 4,
-      "comment": "Giường thoải mái nhưng lắp ráp hơi khó.",
-      "helpfulCount": 6,
-      "isVerifiedPurchase": false
-    },
-    {
-      "product": "66f3cde1e5fe3030043f2e75",
-      "user": "6502f3f3c29e5a0012e8c3f2",
-      "rating": 5,
-      "comment": "Bàn đứng rất tốt, dễ điều chỉnh độ cao.",
-      "helpfulCount": 4,
-      "isVerifiedPurchase": true
-    },
-    {
-      "product": "66f3cdece5fe3030043f2e77",
-      "user": "6502f3f3c29e5a0012e8c3d3",
-      "rating": 2,
-      "comment": "Ghế bị lung lay khi lắp xong.",
-      "helpfulCount": 0,
-      "isVerifiedPurchase": false
-    },
-    {
-      "product": "66f3cde7e5fe3030043f2e76",
-      "user": "6502f3f3c29e5a0012e8c3f7",
-      "rating": 4,
-      "comment": "Giường thư giãn ngoài trời rất đẹp, thoải mái.",
-      "helpfulCount": 7,
-      "isVerifiedPurchase": true
-    },
-    {
-      "product": "66f3cddbe5fe3030043f2e74",
-      "user": "6502f3f3c29e5a0012e8c3f4",
-      "rating": 3,
-      "comment": "Giường tốt nhưng vải bị hư hại nhẹ khi giao.",
-      "helpfulCount": 1,
-      "isVerifiedPurchase": false
-    },
-    {
-      "product": "66f3cdece5fe3030043f2e77",
-      "user": "6502f3f3c29e5a0012e8c3e2",
-      "rating": 4,
-      "comment": "Ghế tốt nhưng hơi mắc so với chất lượng.",
-      "helpfulCount": 3,
-      "isVerifiedPurchase": true
-    }
-  ]
-  
+  {
+    "name": "Sofa",
+    "description": "Comfortable and stylish sofas for your living room.",
+    "images": [
+      "https://example.com/images/sofa1.png",
+      "https://example.com/images/sofa2.png"
+    ]
+  },
+  {
+    "name": "Dining Tables",
+    "description": "Elegant dining tables for family gatherings.",
+    "images": [
+      "https://example.com/images/dining_table1.png",
+      "https://example.com/images/dining_table2.png"
+    ]
+  },
+  {
+    "name": "Chairs",
+    "description": "A variety of chairs for every need and style.",
+    "images": [
+      "https://example.com/images/chair1.png",
+      "https://example.com/images/chair2.png"
+    ]
+  },
+  {
+    "name": "Beds",
+    "description": "Comfortable beds for a good night's sleep.",
+    "images": [
+      "https://example.com/images/bed1.png",
+      "https://example.com/images/bed2.png"
+    ]
+  },
+  {
+    "name": "Wardrobes",
+    "description": "Spacious wardrobes to organize your clothes.",
+    "images": [
+      "https://example.com/images/wardrobe1.png",
+      "https://example.com/images/wardrobe2.png"
+    ]
+  },
+  {
+    "name": "Coffee Tables",
+    "description": "Stylish coffee tables to enhance your living space.",
+    "images": [
+      "https://example.com/images/coffee_table1.png",
+      "https://example.com/images/coffee_table2.png"
+    ]
+  },
+  {
+    "name": "Bookshelves",
+    "description": "Functional and decorative bookshelves for your books.",
+    "images": [
+      "https://example.com/images/bookshelf1.png",
+      "https://example.com/images/bookshelf2.png"
+    ]
+  },
+  {
+    "name": "Office Furniture",
+    "description": "Ergonomic office furniture for a productive workspace.",
+    "images": [
+      "https://example.com/images/office_furniture1.png",
+      "https://example.com/images/office_furniture2.png"
+    ]
+  },
+  {
+    "name": "Outdoor Furniture",
+    "description": "Durable furniture for your outdoor spaces.",
+    "images": [
+      "https://example.com/images/outdoor_furniture1.png",
+      "https://example.com/images/outdoor_furniture2.png"
+    ]
+  },
+  {
+    "name": "Lighting",
+    "description": "Stylish lighting solutions for every room.",
+    "images": [
+      "https://example.com/images/lighting1.png",
+      "https://example.com/images/lighting2.png"
+    ]
+  }
+]
