@@ -9,8 +9,6 @@ const addCard = async (params) => {
       cardExpmonth: params.cardExpmonth,
       cardExpyears: params.cardExpyears,
       cardCVC: params.cardCVC,
-      customerId: params.customerId,
-      cardId: params.cardId
     });
     await card.save();
     return card;
@@ -25,6 +23,7 @@ const updateCard = async (user_id, cardId, params) => {
         { user_id, cardId },
         {
           Card_name: params.Card_name,
+          Cardnumber: params.Cardnumber,
           cardExpmonth: params.cardExpmonth,
           cardExpyears: params.cardExpyears,
           cardCVC: params.cardCVC

@@ -39,7 +39,11 @@ const userSchema = mongoose.Schema({
       type: Date,
       default: Date.now
     }
-  }]
+  }],
+  stripeCustomerId: {
+    type: String,
+    default: null // Default to null if not set
+  }
 });
 
 module.exports = mongoose.model('User', userSchema);

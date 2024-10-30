@@ -2,76 +2,105 @@ const User = require("../model/Usermodel/User");
 const Card = require("../model/Usermodel/Card");
 const Order = require("../model/Usermodel/Order");
 const ShoppingCart = require("../model/Usermodel/ShoppingCart");
+const Inventory = require("../model/Usermodel/Inventory");
 const StripeService = require("../service/stripe.service");
 const CartService = require("../service/cart.service");
+const { STRIPE_CONFIG } = require("../config/config");
+const Address = require("../model/Usermodel/Address");
 
 const createOrder = async (params) => {
-    try {
-      const userDB = await User.findById(params.userId);
-      if (!userDB) throw new Error('User not found');
+  try {
+    const user = await User.findById(params.userId);
+    if (!user) throw new Error('User not found');
 
-      let stripeCustomerID = userDB.stripeCustomerID;
+    const cart = await ShoppingCart.findOne({ user_id: params.userId }).populate('product.product');
+    if (!cart || cart.product.length === 0) throw new Error('Cart is empty');
 
-      if (!stripeCustomerID) {
-        const customerResult = await StripeService.createCustomer({
-          name: userDB.user_name,
-          email: userDB.email
-        });
-        stripeCustomerID = customerResult.id;
-        userDB.stripeCustomerID = stripeCustomerID;
-        await userDB.save();
+    for (const cartItem of cart.product) {
+      const inventory = await Inventory.findOne({ productId: cartItem.product._id });
+      if (!inventory || inventory.stockQuantity < cartItem.quantity) {
+        throw new Error(`Not enough stock for product ${cartItem.product.name}`);
       }
-  
-      const cardDB = await Card.findOne({
-        customerId: stripeCustomerID,
-        Cardnumber: params.cardNumber,
-        cardExpmonth: params.cardExMonth,
-        cardExpyears: params.cardExYear,
+    }
+
+    if (!user.stripeCustomerId) {
+      const customer = await StripeService.createCustomer({
+        name: user.name,
+        email: user.email
       });
-  
-      let cardId;
-      if (cardDB) {
-        cardId = cardDB.cardId;
-      } else {
-        const cardResult = await StripeService.addCard({
-          Card_name: params.cardName,
-          Cardnumber: params.cardNumber,
-          cardExpmonth: params.cardExMonth,
-          cardExpyears: params.cardExYear,
-          cardCVC: params.cardCVC,
-          customerId: stripeCustomerID
-        });
-        cardId = cardResult.card;
-      }
-  
-      const paymentIntent = await StripeService.createPaymentIntent({
-        Payment_receipt_email: userDB.email,
-        amount: params.amount,
-        customer_id: stripeCustomerID,
-        paymentMethodId: params.paymentMethodId,
+      user.stripeCustomerId = customer.id;
+      await user.save();
+    }
+
+    let card;
+    if (params.paymentMethod === 'Credit Card' && params.cardToken) {
+      card = await StripeService.addCard({
+        customerId: user.stripeCustomerId,
+        cardToken: params.cardToken
       });
-  
-      const cartDB = await CartService.ServiceGetallCartByUser({ userId: userDB._id });
-      if (!cartDB) throw new Error('Cart not found');
-  
-      const products = cartDB.product.map(item => ({
+    }
+
+    const totalAmount = cart.product.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    let paymentIntent;
+    if (params.paymentMethod === 'Credit Card') {
+      paymentIntent = await StripeService.createPaymentIntent({
+        Payment_receipt_email: user.email,
+        amount: totalAmount*100,
+        customer_id: user.stripeCustomerId,
+        currency: params.currency || STRIPE_CONFIG.CURRENCY
+      });
+    }
+
+    const address = await Address.findById(params.addressId);
+    if (!address) throw new Error('Address not found');
+
+    const order = await Order.create({
+      user_id: user._id,
+      products: cart.product.map(item => ({
         product: item.product._id,
         amount: item.price * item.quantity,
         quantity: item.quantity
-      }));
-  
-      const order = await Order.create({
-        user_id: userDB._id,
-        Products: products,
-        total_amount: params.amount,
-        transaction_id: paymentIntent.id
-      });
-  
-      return order;
-    } catch (error) {
-      throw new Error(error.message || "Error creating order");
+      })),
+      total_amount: totalAmount,
+      transaction_id: paymentIntent?.id || null,
+      shipping_address: address._id,
+      payment_method: params.paymentMethod,
+      delivery_status: 'Pending'
+    });
+
+    for (const cartItem of cart.product) {
+      await Inventory.findOneAndUpdate(
+        { productId: cartItem.product._id },
+        { $inc: { stockQuantity: -cartItem.quantity } }
+      );
     }
-  };
+
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        $push: {
+          purchaseHistory: {
+            $each: cart.product.map(item => ({
+              product: item.product._id,
+              purchaseDate: new Date()
+            }))
+          }
+        }
+      },
+      { new: true }
+    );
+
+    await ShoppingCart.findOneAndUpdate(
+      { user_id: params.userId },
+      { $set: { product: [] } }
+    );
+
+    return order;
+  } catch (error) {
+    throw new Error(error.message || "Error creating order");
+  }
+};
 
 const updateOrder = (params, callback) => {
     const model = {
