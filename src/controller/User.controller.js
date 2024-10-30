@@ -39,9 +39,10 @@ const userController = {
       // Xác thực người dùng
       // const user = await authenticate(token);
       const fileData = req.files || [req.file];
-      console.log(fileData)
-      const { userId, productId, rating, comment, isVerifiedPurchase } = req.body;
-      const images = fileData ? fileData.map(file => file.path) : [];
+      console.log(fileData);
+      const { userId, productId, rating, comment, isVerifiedPurchase } =
+        req.body;
+      const images = fileData ? fileData.map((file) => file.path) : [];
       console.log(images);
 
       // Kiểm tra xem sản phẩm có tồn tại không
@@ -73,6 +74,22 @@ const userController = {
 
       res.status(201).json({ message: "Đánh giá được tạo thành công", review });
     } catch (error) {
+      res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+    }
+  },
+
+  getAllCategories: async (req, res) => {
+    try {
+      // Lấy tất cả các danh mục từ cơ sở dữ liệu
+      const categories = await Category.find();
+
+      // Trả về danh sách danh mục
+      res.status(200).json({ categories });
+      if (!categories) {
+        return res.status(404).json({ message: "Không tìm thấy danh mục" });
+      }
+    } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
     }
   },
@@ -174,39 +191,6 @@ const userController = {
       res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
     }
   },
-  getProductsByCategory: async (req, res) => {
-    try {
-      const { categoryId } = req.params;
-      const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
-
-      // Kiểm tra sự tồn tại của danh mục
-      const category = await Category.findById(categoryId);
-      if (!category) {
-        return res.status(404).json({ message: 'Không tìm thấy danh mục' });
-      }
-
-      // Truy vấn sản phẩm theo categoryId với phân trang
-      const products = await Product.find({ category: categoryId })
-        .populate('category', 'name description') // Populate thông tin danh mục
-        .sort({ [sortBy]: order === 'desc' ? -1 : 1 }) // Sắp xếp theo trường và thứ tự
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit));
-
-      // Đếm tổng số sản phẩm trong danh mục
-      const total = await Product.countDocuments({ category: categoryId });
-
-      res.status(200).json({
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-        products,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
-    }
-  },
-
   getProductById: async (req, res) => {
     try {
       const data = await Product.findOne({ _id: req.params.id });
@@ -280,7 +264,7 @@ const userController = {
       }
 
       // Find the user's cart
-      let cart = await ShoppingCart.findOne({ user_id: userId });// Find the user's cart
+      let cart = await ShoppingCart.findOne({ user_id: userId }); // Find the user's cart
       if (!cart) {
         return res.status(404).json({ message: "Cart not found" });
       }
@@ -290,13 +274,12 @@ const userController = {
         (item) => item.product.toString() === productId
       );
 
-      if (productIndex === -1) {// Product not found in cart
-        return res
-          .status(404)
-          .json({ message: "Product not found in cart" });
+      if (productIndex === -1) {
+        // Product not found in cart
+        return res.status(404).json({ message: "Product not found in cart" });
       }
 
-      const existingProduct = cart.product[productIndex];// Get the product from the cart
+      const existingProduct = cart.product[productIndex]; // Get the product from the cart
 
       // If removing all or more than existing quantity, remove entirely
       if (quantityToRemove >= existingProduct.quantity) {
@@ -304,18 +287,21 @@ const userController = {
       } else {
         // Otherwise, just decrease the quantity and update total
         existingProduct.quantity -= quantityToRemove;
-        existingProduct.total = existingProduct.quantity * existingProduct.price;
+        existingProduct.total =
+          existingProduct.quantity * existingProduct.price;
       }
 
       // Save the updated cart
       await cart.save();
-      const updatedCart = await ShoppingCart.findOne({ user_id: userId }).populate('product.product');
+      const updatedCart = await ShoppingCart.findOne({
+        user_id: userId,
+      }).populate("product.product");
 
       res.status(200).json(updatedCart); //Return the updated cart
 
       res.status(200).json(cart);
     } catch (error) {
-      console.error("Error removing from cart:", error);// ... error handling ...
+      console.error("Error removing from cart:", error); // ... error handling ...
       res.status(500).json({ message: "Server error" });
     }
   },
@@ -327,7 +313,7 @@ const userController = {
       }
 
       const userId = req.user.id;
-      const cart = await ServiceGetallCartByUser(userId)
+      const cart = await ServiceGetallCartByUser(userId);
 
       if (!cart) {
         return res.status(404).json({ message: "Cart not found" });
@@ -336,7 +322,9 @@ const userController = {
       res.status(200).json(cart);
     } catch (error) {
       console.error("Error fetching cart:", error);
-      res.status(500).json({ message: "Internal server error", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Internal server error", error: error.message });
     }
   },
   getAllCart: async (req, res) => {
@@ -345,7 +333,9 @@ const userController = {
       res.status(200).json(cart);
     } catch (error) {
       console.error("Error fetching cart:", error);
-      res.status(500).json({ message: "Internal server error", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Internal server error", error: error.message });
     }
   },
   updateCartItem: async (req, res) => {
@@ -391,10 +381,6 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
-
-
-
-
   // Inventory controllers
   getAllInventory: async (req, res) => {
     try {
@@ -414,7 +400,6 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
-
 
   // Wishlist controllers
   addToWishlist: async (req, res) => {
@@ -537,9 +522,8 @@ const userController = {
 
       res.status(200).json({
         message: "Order placed successfully",
-        data: result
+        data: result,
       });
-
     } catch (error) {
       console.error("Error creating order:", error.message || error);
       res.status(500).json({ message: error.message || "Server error" });
@@ -550,40 +534,62 @@ const userController = {
       orderService.updateOrder(req.body, (error, result) => {
         if (error) {
           res.status(500).json({ message: "Server error" });
-        }
-        else {
+        } else {
           res.status(200).send({
             message: "Order placed successfully",
-            data: result
-          })
+            data: result,
+          });
         }
-      })
+      });
     } catch (error) {
       console.error("Error updating order:", error);
       res.status(500).json({ message: "Server error" });
-
     }
-
   },
   FindOrderController: async (req, res) => {
     try {
       orderService.GetOrder(req.body, (error, result) => {
         if (error) {
           res.status(500).json({ message: "Server error" });
-        }
-        else {
+        } else {
           res.status(200).send({
             message: "Order placed successfully",
-            data: result
-          })
+            data: result,
+          });
         }
-      })
+      });
     } catch (error) {
       console.error("Error updating order:", error);
       res.status(500).json({ message: "Server error" });
-
     }
+  },
+  // Thêm phương thức để lấy sản phẩm theo category
+  getProductsByCategory: async (req, res) => {
+    try {
+      const categoryId = req.params.categoryId;
+      
+      // Kiểm tra category có tồn tại
+      const category = await Category.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      // Lấy sản phẩm theo category
+      const products = await Product.find({ category: categoryId })
+        .populate('category')
+        .sort({ createdAt: -1 });
 
+      return res.status(200).json({
+        success: true,
+        products: products
+      });
+    } catch (error) {
+      console.error('Error getting products by category:', error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message
+      });
+    }
   },
 
   addCard: async (req, res) => {

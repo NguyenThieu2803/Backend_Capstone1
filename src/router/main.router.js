@@ -28,13 +28,13 @@ router.post("/api/v1/addwishlist/", userController.addToWishlist);
 router.get("/api/v1/wishlist/:id", userController.getWishlist);
 router.delete("/api/v1/removewishlist/", userController.removeFromWishlist);
 
-// Review routes
-router.post("/api/v1/createReview", uploadCloud.array('image', 5), userController.createReview);
+//review
+router.post("/api/v1/createReview", uploadCloud.array('image',5),userController.createReview);
 router.get("/api/v1/getReviewByProduct/:productId", userController.getReviewsByProduct);
 router.put("/api/v1/reviews/:reviewId", userController.updateReview);
+router.get('/api/v1/getproductbycategory/:categoryId', userController.getProductsByCategory);
+router.get("/api/v1/getAllCategories", userController.getAllCategories);
 
-// Product category routes
-router.get("/api/v1/getProductsByCategory/:categoryId", userController.getProductsByCategory);
 
 // Order routes
 router.post("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.checkout);

@@ -10,7 +10,8 @@ const categorySchema = new Schema({
   description: {
     type: String,
     trim: true
-  }
+  },
+  images: [String]
 }, { timestamps: true });
 
 const Category = mongoose.model('Category', categorySchema);
