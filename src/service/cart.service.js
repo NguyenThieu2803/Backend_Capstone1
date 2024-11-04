@@ -1,6 +1,6 @@
 const ShoppingCart = require("../model/Usermodel/ShoppingCart");
 const Product = require("../model/Usermodel/Product");
-
+const mongoose = require('mongoose');
     //Add product to cart
     //Add product to cart
     const serviceAddToCart = async (userId, productId, quantity) => {
@@ -142,9 +142,42 @@ const serviceDeleteCartItem = async (userId, productId) => {
   }
 };
 
+const getTotalQuantitiesByUserAndProductIds = async (userId, productArray) => {
+  // Trích xuất productId từ mảng sản phẩm
+  const productIds = productArray.map(item => item.productId);
+
+  // Chuyển đổi productIds từ chuỗi sang ObjectId
+  const objectIdArray = productIds.map(id => new mongoose.Types.ObjectId(id));
+
+  // Tìm số lượng sản phẩm trong giỏ hàng của người dùng
+  const result = await ShoppingCart.aggregate([
+    { $match: { user_id: userId } }, // Lọc theo userId
+    { $unwind: '$product' }, // Phân rã mảng product
+    { $match: { 'product.product': { $in: objectIdArray } } }, // Lọc các sản phẩm theo productId
+    {
+      $group: {
+        _id: '$product.product', // Nhóm theo productId
+        totalQuantity: { $sum: '$product.quantity' } // Tính tổng số lượng
+      }
+    },
+    {
+      $project: {
+        _id: 0, // Loại bỏ _id khỏi kết quả
+        productId: '$_id', // Đổi tên _id thành productId
+        totalQuantity: 1 // Giữ lại tổng số lượng
+      }
+    }
+  ]);
+
+  return result;
+};
+
+
+
 module.exports = {
     serviceAddToCart,
     ServiceGetallCartByUser,
     serviceUpdateCartItem,
-    serviceDeleteCartItem
+    serviceDeleteCartItem,
+    getTotalQuantitiesByUserAndProductIds
 };

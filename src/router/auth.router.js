@@ -1,7 +1,7 @@
 const express = require('express');
 const authController = require('../controller/auth.controller');
 const authmiddlewareControll = require('../middleware/auth.middleware');
-
+const uploadCloudAvatar = require("../middleware/Upload/AvatarReview")
 const router = express.Router();
 
 
@@ -13,6 +13,10 @@ router.put('/api/auth/users/:userId/email',authmiddlewareControll.verifyUser, au
 router.put('/api/auth/users/:userId/password', authController.updatePassword);
 router.post('/api/auth/users/:userId/addresses', authController.addAddress);
 router.put('/api/auth/users/:userId/addresses/:addressIndex', authController.updateAddress); 
+// 
+router.put('/api/auth/users/avatar', authmiddlewareControll.verifyUser, uploadCloudAvatar.single('image'), authController.updateAvatar);
+
+
 
 
 

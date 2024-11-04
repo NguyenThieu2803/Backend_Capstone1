@@ -2,7 +2,7 @@ const express = require("express");
 const authController = require("../controller/auth.controller");
 const userController = require("../controller/User.controller");
 const authmiddlewareControll = require("../middleware/auth.middleware");
-const uploadCloud = require("../middleware/Uploader")
+const uploadCloud = require("../middleware/Upload/UploaderReview")
 const router = express.Router();
 
 // User routes
@@ -20,6 +20,7 @@ router.delete("/api/v1/cart", authmiddlewareControll.verifyUser, userController.
 
 // Inventory routes
 router.get("/api/v1/getallinventory", userController.getAllInventory);
+router.get("/api/v1/getinventorybyproductid", userController.GetInventoryByProductId);
 
 
 // Wishlist routes
@@ -36,15 +37,15 @@ router.get("/api/v1/getAllCategories", userController.getAllCategories);
 
 
 // Order routes
-router.post("/api/v1/checkout", userController.CreateOrderController);
-router.get("/api/v1/checkout", userController.UpdateOrderController);
-router.put('/api/v1/checkout', userController.FindOrderController);
+router.post("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.checkout);
+router.get("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.UpdateOrderController);
+router.put('/api/v1/checkout', authmiddlewareControll.verifyUser, userController.FindOrderController);
 
 // Card routes
 router.post("/api/v1/card", authmiddlewareControll.verifyUser, userController.addCard);
 router.put("/api/v1/card/:cardId", authmiddlewareControll.verifyUser, userController.updateCard);
 router.delete("/api/v1/card/:cardId", authmiddlewareControll.verifyUser, userController.deleteCard);
-router.get("/api/v1/cards", authmiddlewareControll.verifyUser, userController.getAllCards);
+router.get("/api/v1/card", authmiddlewareControll.verifyUser, userController.getAllCards);
 
 // Address routes
 router.post("/api/v1/address", authmiddlewareControll.verifyUser, userController.addAddress);

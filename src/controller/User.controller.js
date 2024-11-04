@@ -15,6 +15,9 @@ const { serviceAddToCart, ServiceGetallCartByUser, serviceUpdateCartItem, servic
 const orderService = require("../service/Order.service"); // Ensure correct import
 const cardService = require("../service/Card.service"); // Ensure correct import
 const addressService = require("../service/Address.service"); // Import address service
+const { STRIPE_CONFIG } = require("../config/config");
+const OrderService = require('../service/Order.service');
+const asyncHandler = require('express-async-handler');
 
 const userController = {
   //Get All users
@@ -469,6 +472,15 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
+  GetInventoryByProductId: async (req, res) => {
+    try {
+      const inventory = await Inventory.findOne({ productId: req.body.productId });
+      res.status(200).json(inventory);
+    } catch (error) {
+      console.error("Error fetching inventory:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
 
   // Wishlist controllers
   addToWishlist: async (req, res) => {
@@ -574,32 +586,6 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
-
-  // Order controller
-  CreateOrderController: async (req, res) => {
-    try {
-      const model = {
-        userId: req.body.userId,
-        cardName: req.body.cardName,
-        cardNumber: req.body.cardNumber,
-        cardExMonth: req.body.cardExMonth,
-        cardExYear: req.body.cardExYear,
-        cardCVC: req.body.cardCVC,
-        amount: req.body.amount,
-        paymentMethodId: req.body.paymentMethodId // Ensure this is passed
-      };
-
-      const result = await orderService.createOrder(model);
-
-      res.status(200).json({
-        message: "Order placed successfully",
-        data: result,
-      });
-    } catch (error) {
-      console.error("Error creating order:", error.message || error);
-      res.status(500).json({ message: error.message || "Server error" });
-    }
-  },
   UpdateOrderController: async (req, res) => {
     try {
       orderService.updateOrder(req.body, (error, result) => {
@@ -679,7 +665,7 @@ const userController = {
 
   updateCard: async (req, res) => {
     try {
-      const { cardId } = req.params;
+      const { cardId } = req.body;
       const card = await cardService.updateCard(req.user.id, cardId, req.body);
       res.status(200).json({ message: "Card updated successfully", card });
     } catch (error) {
@@ -690,7 +676,7 @@ const userController = {
 
   deleteCard: async (req, res) => {
     try {
-      const { cardId } = req.params;
+      const { cardId } = req.body;
       await cardService.deleteCard(req.user.id, cardId);
       res.status(200).json({ message: "Card deleted successfully" });
     } catch (error) {
@@ -808,6 +794,38 @@ const userController = {
       });
     }
   },
+  // Thêm phương thức mới
+  checkout: asyncHandler(async (req, res) => {
+    try {
+      const userId = req.user.id;
+        const { paymentMethod,totalPrices,products, cardToken, addressId, currency } = req.body; // Use cardToken
+console.log(totalPrices)
+      // Call the createOrder function from OrderService
+      const order = await OrderService.createOrder({
+        userId,
+        paymentMethod,
+        cardToken, // Pass the token
+        addressId,
+        currency,
+        totalPrices,
+        products
+      });
+
+      // Respond with the created order
+      res.status(200).json({
+        success: true,
+        message: 'Order created successfully',
+        order
+      });
+    } catch (error) {
+      // Handle errors and send a response
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error during checkout',
+      });
+      console.log(error)
+    }
+  }),
 
 };
 

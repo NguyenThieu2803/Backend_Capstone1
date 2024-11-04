@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const uuid = require('uuid'); // You might need to install this package
 
 const CardSchema = new mongoose.Schema({
     user_id: String,
@@ -26,12 +27,12 @@ const CardSchema = new mongoose.Schema({
     },
     customerId: {
         type: String,
-        required: true
+        required: false
     },
     cardId: {
         type: String,
-        required: true,
-        unique: true
+        unique: true,
+        default: () => uuid.v4() // Generate a unique UUID for each new card
     }
 }, { timestamps: true });
 

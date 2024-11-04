@@ -3,11 +3,11 @@ const Product = require('./Product');
 
 const orderSchema = new mongoose.Schema({
   user_id: {
-    type: mongoose.Schema.Types.ObjectId,  // Should be an ObjectId
-    ref: 'User',  // Reference to User model
+    type: mongoose.Schema.Types.ObjectId,  // ID của người dùng
+    ref: 'User',
     required: true
   },
-  Products: [
+  products: [  // Danh sách sản phẩm trong đơn hàng
     {
       product: {
         type: mongoose.Schema.Types.ObjectId,
@@ -21,13 +21,12 @@ const orderSchema = new mongoose.Schema({
       quantity: {
         type: Number,
         required: true
-      },
+      }
     }
   ],
   total_amount: {
     type: Number,
-    required: true,
-    default: 0,
+    required: true
   },
   transaction_id: {
     type: String,
@@ -37,13 +36,24 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  payment_status: {
+  payment_status: {  // Trạng thái thanh toán
     type: String,
+    enum: ['Pending', 'Completed', 'Failed', 'Refunded'],
     default: 'Pending'
   },
-  delivery_status: {
+  delivery_status: {  // Trạng thái giao hàng
     type: String,
+    enum: ['Pending', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
     default: 'Pending'
+  },
+  shipping_address: {  // Tham chiếu đến mô hình Address
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Address',
+    required: true  // Bắt buộc phải có địa chỉ giao hàng
+  },
+  payment_method: {  // Phương thức thanh toán
+    type: String,
+    required: true
   }
 }, { timestamps: true });
 
