@@ -52,4 +52,7 @@ router.put("/api/v1/address", authmiddlewareControll.verifyUser, userController.
 router.delete("/api/v1/address", authmiddlewareControll.verifyUser, userController.deleteAddress);
 router.get("/api/v1/address", authmiddlewareControll.verifyUser, userController.getAllAddresses);
 
+// Search route
+router.get("/api/v1/products/search", userController.searchProducts);
+
 module.exports = router;

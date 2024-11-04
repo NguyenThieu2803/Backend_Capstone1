@@ -27,10 +27,22 @@ const reviewSchema = new Schema({
     default: Date.now
   },
   images: {
-    type: [String], // Mảng chứa URL của ảnh
+    type: [String],
     default: []
   }
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Thêm virtual field để lấy thông tin user
+reviewSchema.virtual('user', {
+  ref: 'User',
+  localField: 'user_id',
+  foreignField: '_id',
+  justOne: true
+});
 
 const Review = mongoose.model('Review', reviewSchema);
 
