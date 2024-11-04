@@ -5,7 +5,6 @@ const app = express();
 const authrouter = require('./router/auth.router');
 const routes = require("./router/main.router");
 const connectDB = require('./config/connectdb');
-const cloudinary = require("./middleware/Uploader");
 const port= process.env.POST || 5000
 const localhost = process.env.HOST;
 

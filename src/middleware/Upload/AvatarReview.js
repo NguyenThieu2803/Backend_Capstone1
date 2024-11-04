@@ -4,19 +4,19 @@ const multer = require('multer');
 require('dotenv').config()
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_KEY,
-  api_secret: process.env.CLOUDINARY_SECRET
+  cloud_name: process.env.AVATAR_CLOUDINARY_NAME,
+  api_key: process.env.AVATAR_CLOUDINARY_KEY,
+  api_secret: process.env.AVATAR_CLOUDINARY_SECRET
 });
 
 const storage = new CloudinaryStorage({
   cloudinary,
   allowedFormats: ['jpg', 'png'],
   params: {
-    folder: 'review_images'
+    folder: 'avatar_images',
   }
 });
 
-const uploadCloud = multer({ storage });
+const uploadCloudAvatar = multer({ storage });
 
-module.exports = uploadCloud;
+module.exports = uploadCloudAvatar;

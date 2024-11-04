@@ -2,7 +2,7 @@ const express = require("express");
 const authController = require("../controller/auth.controller");
 const userController = require("../controller/User.controller");
 const authmiddlewareControll = require("../middleware/auth.middleware");
-const uploadCloud = require("../middleware/Uploader")
+const uploadCloud = require("../middleware/Upload/UploaderReview")
 const router = express.Router();
 
 // User routes

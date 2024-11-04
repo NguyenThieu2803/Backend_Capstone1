@@ -43,6 +43,14 @@ const userSchema = mongoose.Schema({
   stripeCustomerId: {
     type: String,
     default: null // Default to null if not set
+  },
+  isBlocked: {
+    type: Boolean,
+    default: false
+  },
+  profileImage: {  // New field for profile image
+    type: String,
+    default: null // Default to null if not set
   }
 });
 

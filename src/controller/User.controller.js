@@ -505,30 +505,6 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
-
-  // Order controller
-  CreateOrderController: async (req, res) => {
-    try {
-      const model = {
-        userId: req.body.userId,
-        paymentMethod: req.body.paymentMethod,
-        cardToken: req.body.cardToken, // Use the token instead of raw card details
-        addressId: req.body.addressId,
-        currency: req.body.currency,
-        // ... other fields ...
-      };
-
-      const result = await orderService.createOrder(model);
-
-      res.status(200).json({
-        message: "Order placed successfully",
-        data: result,
-      });
-    } catch (error) {
-      console.error("Error creating order:", error.message || error);
-      res.status(500).json({ message: error.message || "Server error" });
-    }
-  },
   UpdateOrderController: async (req, res) => {
     try {
       orderService.updateOrder(req.body, (error, result) => {
@@ -690,15 +666,17 @@ const userController = {
   checkout: asyncHandler(async (req, res) => {
     try {
       const userId = req.user.id;
-      const { paymentMethod, cardToken, addressId, currency } = req.body; // Use cardToken
-
+        const { paymentMethod,totalPrices,products, cardToken, addressId, currency } = req.body; // Use cardToken
+console.log(totalPrices)
       // Call the createOrder function from OrderService
       const order = await OrderService.createOrder({
         userId,
         paymentMethod,
         cardToken, // Pass the token
         addressId,
-        currency
+        currency,
+        totalPrices,
+        products
       });
 
       // Respond with the created order
@@ -713,6 +691,7 @@ const userController = {
         success: false,
         message: error.message || 'Error during checkout',
       });
+      console.log(error)
     }
   }),
 

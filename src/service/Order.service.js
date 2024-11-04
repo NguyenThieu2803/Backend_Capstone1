@@ -13,15 +13,21 @@ const createOrder = async (params) => {
     const user = await User.findById(params.userId);
     if (!user) throw new Error('User not found');
 
-    const cart = await ShoppingCart.findOne({ user_id: params.userId }).populate('product.product');
-    if (!cart || cart.product.length === 0) throw new Error('Cart is empty');
-
-    for (const cartItem of cart.product) {
-      const inventory = await Inventory.findOne({ productId: cartItem.product._id });
-      if (!inventory || inventory.stockQuantity < cartItem.quantity) {
-        throw new Error(`Not enough stock for product ${cartItem.product.name}`);
-      }
-    }
+    // Fetch products directly using provided product IDs
+    const productDetails = await Promise.all(
+      params.products.map(async (product) => {
+        console.log('Product:', product);
+        const productDetail = await Inventory.findOne({ productId: product.productId });
+        console.log('Product Detail:', productDetail.stockQuantity)
+        if (!productDetail || productDetail.stockQuantity < product.quantity) {
+          throw new Error(`Not enough stock for product ${productDetail?.name || 'unknown'}`);
+        }
+        return {
+          product: productDetail
+        };
+      })
+    );
+    console.log('Product Details:', productDetails);
 
     if (!user.stripeCustomerId) {
       const customer = await StripeService.createCustomer({
@@ -32,47 +38,62 @@ const createOrder = async (params) => {
       await user.save();
     }
 
+    let paymentIntent;
     let card;
+    let paymentStatus = 'Pending'; // Đặt giá trị mặc định cho paymentStatus
+
     if (params.paymentMethod === 'Credit Card' && params.cardToken) {
       card = await StripeService.addCard({
         customerId: user.stripeCustomerId,
         cardToken: params.cardToken
       });
+
+      if (params.paymentMethod === 'Credit Card') {
+        paymentIntent = await StripeService.createPaymentIntent({
+          Payment_receipt_email: user.email,
+          amount: params.totalPrices * 100,
+          customer_id: user.stripeCustomerId,
+          currency: params.currency || STRIPE_CONFIG.CURRENCY
+        });
+
+        if (paymentIntent.status === 'succeeded') {
+          paymentStatus = 'Completed'; // Cập nhật trạng thái thanh toán nếu thành công
+        }
+      }
     }
 
-    const totalAmount = cart.product.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    let paymentIntent;
-    if (params.paymentMethod === 'Credit Card') {
-      paymentIntent = await StripeService.createPaymentIntent({
-        Payment_receipt_email: user.email,
-        amount: totalAmount*100,
-        customer_id: user.stripeCustomerId,
-        currency: params.currency || STRIPE_CONFIG.CURRENCY
+    const totalAmount = await ShoppingCart.findOne({ user_id: user._id })
+      .populate('product.product')
+      .then(cart => {
+        if (!cart) throw new Error('Cart not found');
+        return cart.product.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
       });
-    }
 
     const address = await Address.findById(params.addressId);
     if (!address) throw new Error('Address not found');
+    console.log(params.products)
+    const collectQuantitiesByProductId = await CartService.getTotalQuantitiesByUserAndProductIds(params.userId,params.products);
+console.log('Collect Quantities:', collectQuantitiesByProductId)
 
     const order = await Order.create({
       user_id: user._id,
-      products: cart.product.map(item => ({
+      products: productDetails.map(item => ({
         product: item.product._id,
-        amount: item.price * item.quantity,
-        quantity: item.quantity
+        amount: params.totalPrices,
+        quantity: collectQuantitiesByProductId.at(0).totalQuantity || item.totalQuantity
       })),
-      total_amount: totalAmount,
+      total_amount: params.totalPrices,
       transaction_id: paymentIntent?.id || null,
       shipping_address: address._id,
       payment_method: params.paymentMethod,
+      payment_status: paymentStatus, // Đặt trạng thái thanh toán
       delivery_status: 'Pending'
     });
 
-    for (const cartItem of cart.product) {
+    for (const item of productDetails) {
       await Inventory.findOneAndUpdate(
-        { productId: cartItem.product._id },
-        { $inc: { stockQuantity: -cartItem.quantity } }
+        { productId: item.product.productId },
+        { $inc: { stockQuantity: -collectQuantitiesByProductId.at(0).totalQuantity } }
       );
     }
 
@@ -81,19 +102,14 @@ const createOrder = async (params) => {
       {
         $push: {
           purchaseHistory: {
-            $each: cart.product.map(item => ({
-              product: item.product._id,
+            $each: productDetails.map(item => ({
+              product: item.product.productId,
               purchaseDate: new Date()
             }))
           }
         }
       },
       { new: true }
-    );
-
-    await ShoppingCart.findOneAndUpdate(
-      { user_id: params.userId },
-      { $set: { product: [] } }
     );
 
     return order;
@@ -103,51 +119,51 @@ const createOrder = async (params) => {
 };
 
 const updateOrder = (params, callback) => {
-    const model = {
-        payment_status: params.payment_status,  // Ensure this matches your Order schema
-        transactionId: params.transaction_id // Ensure you have this field in your Order schema
-    };
+  const model = {
+    payment_status: params.payment_status,  // Ensure this matches your Order schema
+    transactionId: params.transaction_id // Ensure you have this field in your Order schema
+  };
 
-    // Update the order by its ID
-    Order.findByIdAndUpdate(params.orderId, model, { new: true, useFindAndModify: false })
-        .then((response) => {
-            if (!response) {
-                return callback('Order update failed: Order not found');
-            }
-            return callback(null, response);  // Return the updated order
-        })
-        .catch((err) => {
-            return callback(err);
-        });
+  // Update the order by its ID
+  Order.findByIdAndUpdate(params.orderId, model, { new: true, useFindAndModify: false })
+    .then((response) => {
+      if (!response) {
+        return callback('Order update failed: Order not found');
+      }
+      return callback(null, response);  // Return the updated order
+    })
+    .catch((err) => {
+      return callback(err);
+    });
 };
 
 const GetOrder = (params, callback) => {
-    Order.findOne({ userId: params.userId })
-        .populate({
-            path: 'products.product', // Ensure this matches your Order schema
-            populate: {
-                path: 'product',
-                model: 'Product',
-                populate: {
-                    path: 'category',
-                    model: 'Category',
-                    select: 'name'
-                }
-            }
-        })
-        .then((response) => {
-            if (!response) {
-                return callback('Order not found');
-            }
-            return callback(null, response);  // Return the order
-        })
-        .catch((err) => {
-            return callback(err);
-        });
+  Order.findOne({ userId: params.userId })
+    .populate({
+      path: 'products.product', // Ensure this matches your Order schema
+      populate: {
+        path: 'product',
+        model: 'Product',
+        populate: {
+          path: 'category',
+          model: 'Category',
+          select: 'name'
+        }
+      }
+    })
+    .then((response) => {
+      if (!response) {
+        return callback('Order not found');
+      }
+      return callback(null, response);  // Return the order
+    })
+    .catch((err) => {
+      return callback(err);
+    });
 };
 
 module.exports = {
-    createOrder,
-    updateOrder,
-    GetOrder,
+  createOrder,
+  updateOrder,
+  GetOrder,
 };
