@@ -32,49 +32,101 @@ const userController = {
 
   createReview: async (req, res) => {
     try {
-      // Lấy token từ header Authorization
-      // const authHeader = req.headers.authorization;
-      // const token = authHeader && authHeader.split(' ')[1];
-
-      // Xác thực người dùng
-      // const user = await authenticate(token);
       const fileData = req.files || [req.file];
-      console.log(fileData);
-      const { userId, productId, rating, comment, isVerifiedPurchase } =
-        req.body;
-      const images = fileData ? fileData.map((file) => file.path) : [];
-      console.log(images);
+      const { userId, productId, rating, comment } = req.body;
 
-      // Kiểm tra xem sản phẩm có tồn tại không
+      // Validate required fields
+      if (!userId || !productId || !rating) {
+        return res.status(400).json({
+          success: false,
+          message: "Thiếu thông tin bắt buộc (userId, productId, rating)"
+        });
+      }
+
+      // Validate rating range
+      if (rating < 1 || rating > 5) {
+        return res.status(400).json({
+          success: false,
+          message: "Rating phải từ 1 đến 5"
+        });
+      }
+
+      // Kiểm tra sản phẩm tồn tại
       const product = await Product.findById(productId);
       if (!product) {
-        return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy sản phẩm"
+        });
+      }
+
+      // Kiểm tra user tồn tại
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy người dùng"
+        });
       }
 
       // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
       const existingReview = await Review.findOne({
-        product: productId,
-        user: userId,
+        product_id: productId,
+        user_id: userId,
       });
+
       if (existingReview) {
-        return res
-          .status(400)
-          .json({ message: "Bạn đã đánh giá sản phẩm này trước đó" });
+        return res.status(400).json({
+          success: false,
+          message: "Bạn đã đánh giá sản phẩm này trước đó"
+        });
       }
+
+      // Xử lý images
+      const images = fileData ? fileData.map((file) => file.path) : [];
 
       // Tạo đánh giá mới
       const review = await Review.create({
         product_id: productId,
         user_id: userId,
-        rating,
-        comment,
-        images,
-        isVerifiedPurchase,
+        rating: parseInt(rating),
+        comment: comment || "",
+        images: images,
+        review_date: new Date()
       });
 
-      res.status(201).json({ message: "Đánh giá được tạo thành công", review });
+      // Populate user information for response
+      const populatedReview = await Review.findById(review._id)
+        .populate('user_id', 'user_name email')
+        .lean();
+
+      // Format response
+      const formattedReview = {
+        id: populatedReview._id,
+        rating: populatedReview.rating,
+        comment: populatedReview.comment,
+        review_date: populatedReview.review_date,
+        images: populatedReview.images,
+        user: {
+          id: populatedReview.user_id._id,
+          name: populatedReview.user_id.user_name,
+          email: populatedReview.user_id.email
+        }
+      };
+
+      res.status(201).json({
+        success: true,
+        message: "Đánh giá đã được tạo thành công",
+        data: formattedReview
+      });
+
     } catch (error) {
-      res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+      console.error('Error in createReview:', error);
+      res.status(500).json({
+        success: false,
+        message: "Lỗi máy chủ",
+        error: error.message
+      });
     }
   },
 
@@ -102,26 +154,55 @@ const userController = {
       // Kiểm tra sản phẩm tồn tại
       const product = await Product.findById(productId);
       if (!product) {
-        return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+        return res.status(404).json({ 
+          success: false,
+          message: "Không tìm thấy sản phẩm" 
+        });
       }
 
-      const reviews = await Review.find({ product: productId })
-        .populate("user", "user_name email") // Lấy thông tin người dùng nhưng không lấy mật khẩu
+      // Lấy reviews với thông tin user
+      const reviews = await Review.find({ product_id: productId })
+        .populate({
+          path: 'user_id',
+          select: 'user_name email' // Chỉ lấy user_name và email
+        })
         .sort({ review_date: -1 })
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
 
-      const total = await Review.countDocuments({ product: productId });
+      // Đếm tổng số reviews
+      const total = await Review.countDocuments({ product_id: productId });
+
+      // Format lại response data
+      const formattedReviews = reviews.map(review => ({
+        id: review._id,
+        rating: review.rating,
+        comment: review.comment,
+        review_date: review.review_date,
+        images: review.images,
+        user_name: review.user_id.user_name,
+        user_email: review.user_id.email
+      }));
 
       res.status(200).json({
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-        reviews,
+        success: true,
+        data: {
+          reviews: formattedReviews,
+          pagination: {
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / limit),
+            per_page: parseInt(limit)
+          }
+        }
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+      console.error('Error in getReviewsByProduct:', error);
+      res.status(500).json({ 
+        success: false,
+        message: "Lỗi máy chủ",
+        error: error.message 
+      });
     }
   },
 
@@ -662,6 +743,57 @@ const userController = {
     }
   },
 
+  searchProducts: async (req, res) => {
+    try {
+      const { query } = req.query;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      if (!query) {
+        return res.status(400).json({
+          success: false,
+          message: "Search query is required"
+        });
+      }
+
+      // Tạo regular expression để tìm kiếm không phân biệt hoa thường
+      const searchRegex = new RegExp(query, 'i');
+
+      // Tìm kiếm sản phẩm theo tên
+      const products = await Product.find({ 
+        name: { $regex: searchRegex } 
+      })
+      .skip(skip)
+      .limit(limit);
+
+      // Đếm tổng số sản phẩm tìm được
+      const total = await Product.countDocuments({ 
+        name: { $regex: searchRegex } 
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          products,
+          pagination: {
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            per_page: limit
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error searching products:', error);
+      res.status(500).json({
+        success: false,
+        message: "Lỗi server khi tìm kiếm sản phẩm",
+        error: error.message
+      });
+    }
+  },
   // Thêm phương thức mới
   checkout: asyncHandler(async (req, res) => {
     try {
