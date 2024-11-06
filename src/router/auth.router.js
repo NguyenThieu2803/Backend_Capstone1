@@ -16,6 +16,8 @@ router.put('/api/auth/users/:userId/addresses/:addressIndex', authController.upd
 // 
 router.put('/api/auth/users/avatar', authmiddlewareControll.verifyUser, uploadCloudAvatar.single('image'), authController.updateAvatar);
 
+// get user profile
+router.get('/api/auth/users/profile', authmiddlewareControll.verifyUser, authController.getUserProfile)
 
 
 

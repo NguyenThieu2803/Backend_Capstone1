@@ -667,7 +667,6 @@ const userController = {
     try {
       const userId = req.user.id;
         const { paymentMethod,totalPrices,products, cardToken, addressId, currency } = req.body; // Use cardToken
-console.log(totalPrices)
       // Call the createOrder function from OrderService
       const order = await OrderService.createOrder({
         userId,

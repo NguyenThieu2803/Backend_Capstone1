@@ -10,6 +10,9 @@ const Address = require("../model/Usermodel/Address");
 
 const createOrder = async (params) => {
   try {
+    // làm trong và chuyển params.totalPrices thành kiểu integer
+    params.totalPrices = Math.round(params.totalPrices);
+    console.log('Total Prices:', params.totalPrices);
     const user = await User.findById(params.userId);
     if (!user) throw new Error('User not found');
 
@@ -51,7 +54,7 @@ const createOrder = async (params) => {
       if (params.paymentMethod === 'Credit Card') {
         paymentIntent = await StripeService.createPaymentIntent({
           Payment_receipt_email: user.email,
-          amount: params.totalPrices * 100,
+          amount: params.totalPrices,
           customer_id: user.stripeCustomerId,
           currency: params.currency || STRIPE_CONFIG.CURRENCY
         });
@@ -61,13 +64,10 @@ const createOrder = async (params) => {
         }
       }
     }
+// remove product from cart
+    
 
-    const totalAmount = await ShoppingCart.findOne({ user_id: user._id })
-      .populate('product.product')
-      .then(cart => {
-        if (!cart) throw new Error('Cart not found');
-        return cart.product.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-      });
+   
 
     const address = await Address.findById(params.addressId);
     if (!address) throw new Error('Address not found');
@@ -96,7 +96,7 @@ console.log('Collect Quantities:', collectQuantitiesByProductId)
         { $inc: { stockQuantity: -collectQuantitiesByProductId.at(0).totalQuantity } }
       );
     }
-
+    await CartService.serviceRemoveProductFromCart(params.userId, params.products);
     await User.findByIdAndUpdate(
       user._id,
       {
