@@ -154,9 +154,9 @@ const userController = {
       // Kiểm tra sản phẩm tồn tại
       const product = await Product.findById(productId);
       if (!product) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          message: "Không tìm thấy sản phẩm" 
+          message: "Không tìm thấy sản phẩm"
         });
       }
 
@@ -198,10 +198,10 @@ const userController = {
       });
     } catch (error) {
       console.error('Error in getReviewsByProduct:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         message: "Lỗi máy chủ",
-        error: error.message 
+        error: error.message
       });
     }
   },
@@ -586,6 +586,9 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
+
+  
+  // Order controllers
   UpdateOrderController: async (req, res) => {
     try {
       orderService.updateOrder(req.body, (error, result) => {
@@ -603,28 +606,42 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
-  FindOrderController: async (req, res) => {
+  getOrdersByUserIdController : async (req, res) => {
     try {
-      orderService.GetOrder(req.body, (error, result) => {
-        if (error) {
-          res.status(500).json({ message: "Server error" });
-        } else {
-          res.status(200).send({
-            message: "Order placed successfully",
-            data: result,
-          });
-        }
+      const userId = req.user.id; // Assuming user ID is available in req.user
+  console.log("User ID:", userId); // Log the user ID for debugging
+      const orders = await orderService.getOrdersByUserId(userId); // Call the service function
+  
+      if (!orders || orders.length === 0) {
+        return res.status(404).json({ message: 'No orders found for this user' });
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: 'Orders retrieved successfully',
+        data: orders
       });
     } catch (error) {
-      console.error("Error updating order:", error);
-      res.status(500).json({ message: "Server error" });
+      console.error('Error fetching orders:', error);
+      res.status(500).json({ message: error.message || 'Server error' });
+    }
+  },
+  deleteOrderController : async (req, res) => {
+    try {
+      const { orderId } = req.params;
+  
+      const result = await orderService.deleteOrder(orderId);
+      res.status(200).json({ success: true, message: result.message });
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      res.status(500).json({ message: error.message || 'Server error' });
     }
   },
   // Thêm phương thức để lấy sản phẩm theo category
   getProductsByCategory: async (req, res) => {
     try {
       const categoryId = req.params.categoryId;
-      
+
       // Kiểm tra category có tồn tại
       const category = await Category.findById(categoryId);
       if (!category) {
@@ -761,15 +778,15 @@ const userController = {
       const searchRegex = new RegExp(query, 'i');
 
       // Tìm kiếm sản phẩm theo tên
-      const products = await Product.find({ 
-        name: { $regex: searchRegex } 
+      const products = await Product.find({
+        name: { $regex: searchRegex }
       })
-      .skip(skip)
-      .limit(limit);
+        .skip(skip)
+        .limit(limit);
 
       // Đếm tổng số sản phẩm tìm được
-      const total = await Product.countDocuments({ 
-        name: { $regex: searchRegex } 
+      const total = await Product.countDocuments({
+        name: { $regex: searchRegex }
       });
 
       res.status(200).json({
@@ -798,8 +815,7 @@ const userController = {
   checkout: asyncHandler(async (req, res) => {
     try {
       const userId = req.user.id;
-        const { paymentMethod,totalPrices,products, cardToken, addressId, currency } = req.body; // Use cardToken
-console.log(totalPrices)
+      const { paymentMethod, totalPrices, products, cardToken, addressId, currency } = req.body; // Use cardToken
       // Call the createOrder function from OrderService
       const order = await OrderService.createOrder({
         userId,

@@ -7,13 +7,18 @@ const StripeService = require("../service/stripe.service");
 const CartService = require("../service/cart.service");
 const { STRIPE_CONFIG } = require("../config/config");
 const Address = require("../model/Usermodel/Address");
-
+const { ObjectId } = require('mongodb');
+const mongoose = require('mongoose');
 const createOrder = async (params) => {
   try {
+    // làm trong và chuyển params.totalPrices thành kiểu integer
+    params.totalPrices = Math.round(params.totalPrices);
+    console.log('Total Prices:', params.totalPrices);
     const user = await User.findById(params.userId);
     if (!user) throw new Error('User not found');
 
     // Fetch products directly using provided product IDs
+    const collectQuantitiesByProductId = await CartService.getTotalQuantitiesByUserAndProductIds(params.userId, params.products);
     const productDetails = await Promise.all(
       params.products.map(async (product) => {
         console.log('Product:', product);
@@ -23,10 +28,14 @@ const createOrder = async (params) => {
           throw new Error(`Not enough stock for product ${productDetail?.name || 'unknown'}`);
         }
         return {
-          product: productDetail
+          product: productDetail,
+          quantity: collectQuantitiesByProductId.find(item => item.productId.toString() === product.productId.toString()).totalQuantity || product.quantity
         };
       })
     );
+    if (productDetails.length == 0) {
+      throw new Error('You did not select any products');
+    }
     console.log('Product Details:', productDetails);
 
     if (!user.stripeCustomerId) {
@@ -51,7 +60,7 @@ const createOrder = async (params) => {
       if (params.paymentMethod === 'Credit Card') {
         paymentIntent = await StripeService.createPaymentIntent({
           Payment_receipt_email: user.email,
-          amount: params.totalPrices * 100,
+          amount: params.totalPrices,
           customer_id: user.stripeCustomerId,
           currency: params.currency || STRIPE_CONFIG.CURRENCY
         });
@@ -61,33 +70,30 @@ const createOrder = async (params) => {
         }
       }
     }
+    // remove product from cart
 
-    const totalAmount = await ShoppingCart.findOne({ user_id: user._id })
-      .populate('product.product')
-      .then(cart => {
-        if (!cart) throw new Error('Cart not found');
-        return cart.product.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-      });
+
+
 
     const address = await Address.findById(params.addressId);
     if (!address) throw new Error('Address not found');
     console.log(params.products)
-    const collectQuantitiesByProductId = await CartService.getTotalQuantitiesByUserAndProductIds(params.userId,params.products);
-console.log('Collect Quantities:', collectQuantitiesByProductId)
+    
+    console.log('Collect Quantities:',  collectQuantitiesByProductId.at(0).totalQuantity)
 
     const order = await Order.create({
       user_id: user._id,
       products: productDetails.map(item => ({
-        product: item.product._id,
-        amount: params.totalPrices,
-        quantity: collectQuantitiesByProductId.at(0).totalQuantity || item.totalQuantity
+        product: item.product.productId,
+        amount: item.product.price,
+        quantity: item.quantity
       })),
       total_amount: params.totalPrices,
       transaction_id: paymentIntent?.id || null,
       shipping_address: address._id,
       payment_method: params.paymentMethod,
       payment_status: paymentStatus, // Đặt trạng thái thanh toán
-      delivery_status: 'Pending'
+      delivery_status: 'Shipping'
     });
 
     for (const item of productDetails) {
@@ -96,7 +102,7 @@ console.log('Collect Quantities:', collectQuantitiesByProductId)
         { $inc: { stockQuantity: -collectQuantitiesByProductId.at(0).totalQuantity } }
       );
     }
-
+    await CartService.serviceRemoveProductFromCart(params.userId, params.products);
     await User.findByIdAndUpdate(
       user._id,
       {
@@ -137,33 +143,64 @@ const updateOrder = (params, callback) => {
     });
 };
 
-const GetOrder = (params, callback) => {
-  Order.findOne({ userId: params.userId })
-    .populate({
-      path: 'products.product', // Ensure this matches your Order schema
-      populate: {
-        path: 'product',
-        model: 'Product',
-        populate: {
-          path: 'category',
-          model: 'Category',
-          select: 'name'
-        }
-      }
-    })
-    .then((response) => {
-      if (!response) {
-        return callback('Order not found');
-      }
-      return callback(null, response);  // Return the order
-    })
-    .catch((err) => {
-      return callback(err);
-    });
+const getOrdersByUserId = async (userId) => {
+  try {
+    // Kiểm tra nếu userId không phải là ObjectId hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error('Invalid user ID');
+    }
+
+    // Tìm các đơn hàng theo userId và populate để lấy thông tin chi tiết về product và shipping_address
+    const orders = await Order.find({ user_id: new mongoose.Types.ObjectId(userId) })
+      .populate('products.product')
+      .populate('shipping_address');// Populate thông tin chi tiết của địa chỉ giao hàng
+
+    if (!orders || orders.length === 0) {
+      throw new Error('No orders found for this user');
+    }
+
+    return orders;
+  } catch (error) {
+    // Xử lý lỗi và trả về thông báo lỗi phù hợp
+    console.error('Error fetching orders:', error.message);
+    throw new Error(error.message || 'Error fetching orders');
+  }
+};
+const deleteOrder = async (userId,orderId) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      throw new Error('Invalid order ID');
+    }
+
+    const result = await Order.findByIdAndDelete(orderId);
+    if (!result) {
+      throw new Error('Order not found');
+    }
+    return { message: 'Order deleted successfully' };
+  } catch (error) {
+    throw new Error(error.message || 'Error deleting order');
+  }
+};
+const autoUpdateDeliveryStatus = async () => {
+  try {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const orders = await Order.updateMany(
+      { order_date: { $lte: threeDaysAgo }, delivery_status: 'Pending' },
+      { $set: { delivery_status: 'Delivered' } }
+    );
+
+    return { message: `Updated ${orders.nModified} orders to 'Delivered' status` };
+  } catch (error) {
+    throw new Error(error.message || 'Error updating delivery status');
+  }
 };
 
 module.exports = {
   createOrder,
   updateOrder,
-  GetOrder,
+  getOrdersByUserId,
+  deleteOrder,
+  autoUpdateDeliveryStatus,
 };

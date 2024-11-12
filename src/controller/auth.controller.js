@@ -287,51 +287,66 @@ const authController = {
       res.status(500).json({ message: 'Server error' });
     }
   },
-  updateAvatar : async (req, res) => {
+  updateAvatar: async (req, res) => {
     try {
       const userId = req.user.id;
       const fileData = req.file || [req.file];
       console.log(fileData.path);
       // Check if file exists
       if (!req.file) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "No file uploaded" 
+        return res.status(400).json({
+          success: false,
+          message: "No file uploaded"
         });
       }
-  
+
       // Get file path from cloudinary
       const filePath = req.file.path;
-  
+
       // Update user profile
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $set: { profileImage: fileData.path } }, // Use $set instead of $push if you want to replace the old image
         { new: true, runValidators: true }
       );
-  
+
       if (!updatedUser) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "User not found" 
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
         });
       }
-  
+
       res.status(200).json({
         success: true,
         data: updatedUser
       });
-  
+
     } catch (error) {
       console.error("Error updating avatar:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Error updating avatar", 
-        error: error.message 
+      res.status(500).json({
+        success: false,
+        message: "Error updating avatar",
+        error: error.message
       });
     }
-  }
+  },
 
+  // get user profile by token
+  getUserProfile: async (req, res) => {
+    try {
+      const userId = req.user.id; // Assuming you have the user ID in the request object
+      const user = await User.findById(userId); // Use the User model to find the user by ID
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      const { password, isBlocked, role, stripeCustomerId, ...others } = user._doc;
+      // res.status(200).json({ message: 'Login successful!', accesstoken, ...others });
+      res.status(200).json({ message: 'User Profile:', ...others }); // Send the user data as a JSON response
+    } catch (error) {
+      res.status(500).json({ message: 'Error getting user profile', error: error.message });
+    }
+  }
 }
 
 module.exports = authController;

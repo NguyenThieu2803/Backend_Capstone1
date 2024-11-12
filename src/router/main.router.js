@@ -38,8 +38,8 @@ router.get("/api/v1/getAllCategories", userController.getAllCategories);
 
 // Order routes
 router.post("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.checkout);
-router.get("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.UpdateOrderController);
-router.put('/api/v1/checkout', authmiddlewareControll.verifyUser, userController.FindOrderController);
+router.put("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.UpdateOrderController);
+router.get('/api/v1/checkout', authmiddlewareControll.verifyUser, userController.getOrdersByUserIdController);
 
 // Card routes
 router.post("/api/v1/card", authmiddlewareControll.verifyUser, userController.addCard);

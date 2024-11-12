@@ -32,6 +32,10 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  waiting_confirmation: {
+    type: Boolean,
+    default: false
+  },
   order_date: {
     type: Date,
     default: Date.now
@@ -43,7 +47,7 @@ const orderSchema = new mongoose.Schema({
   },
   delivery_status: {  // Trạng thái giao hàng
     type: String,
-    enum: ['Pending', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
+    enum: ['Shipping', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
     default: 'Pending'
   },
   shipping_address: {  // Tham chiếu đến mô hình Address
