@@ -18,7 +18,9 @@ const addressService = require("../service/Address.service"); // Import address 
 const { STRIPE_CONFIG } = require("../config/config");
 const OrderService = require('../service/Order.service');
 const asyncHandler = require('express-async-handler');
-
+const isProductInWishlist = require("../helper/CheckProductWishlist");
+const { removeProductFromWishlist } = require("../service/wishlist.service");
+const mongoose = require('mongoose');
 const userController = {
   //Get All users
   getAllUsers: async (req, res) => {
@@ -485,8 +487,8 @@ const userController = {
   // Wishlist controllers
   addToWishlist: async (req, res) => {
     try {
-      const userId = req.body.userId; // Get the user ID from the request body
-      const productId = req.body.productId;
+      const userId = req.user.id; // Get the user ID from the request body
+      const productId = req.params.productId;
 
       // 1. Fetch the product name
       const product = await Product.findById(productId);
@@ -497,97 +499,66 @@ const userController = {
       // 2. Find or create the user's wishlist
       let wishlist = await Wishlist.findOne({ user_id: userId });
       if (!wishlist) {
-        wishlist = new Wishlist({ user_id: userId, products: [] });
+        wishlist = new Wishlist({ user_id: userId, product: [] });
       }
+      const isProductInWishlistCheck = await isProductInWishlist(userId, productId);
+      if (isProductInWishlistCheck) {
+        return res.status(400).json({ message: "Product already in wishlist" });
+      } else {
+        // 3. Create a new WishlistProduct document WITH the product name
+        wishlist.product.push({
+          product: productId
+        })
+        await wishlist.save();
 
-      // 3. Create a new WishlistProduct document WITH the product name
-      const wishlistProduct = new WishlistProduct({
-        wishlist_id: wishlist._id,
-        product_id: productId,
-        productName: product.name, // Store the fetched product name
-      });
-      await wishlistProduct.save();
-
-      // 4. Add the WishlistProduct to the Wishlist's products array
-      wishlist.products.push(wishlistProduct._id);
-      await wishlist.save();
-
-      res.status(201).json({
-        message: "Product added to wishlist!",
-        wishlist,
-      });
+        res.status(200).json({
+          message: "Product added to wishlist!",
+          wishlist,
+        });
+      }
     } catch (error) {
-      // ... error handling ...
+      console.error("Error adding to wishlist:", error);
+      res.status(500).json({ message: "Server error" });
     }
   },
   getWishlist: async (req, res) => {
     try {
-      const userId = req.params.userId;
+      const userId = req.user.id;
 
-      const wishlist = await Wishlist.findOne({ user_id: userId }).populate({
-        //Populate the WishlistProduct documents
-        path: "products",
-        populate: {
-          path: "product_id",
-          model: "Product",
-          select: "name", // Select only the 'name' field from the Product
-        },
-      });
+      const wishlist = await Wishlist.findOne({ user_id: userId }).populate('product.product');
 
       if (!wishlist) {
         return res.status(404).json({ message: "Wishlist not found" });
       }
 
       res.status(200).json({ wishlist: wishlist });
-
-      res.status(200).json({ wishlist: wishlist });
     } catch (error) {
-      // ... error handling ...
+      console.error("Error fetching wishlist:", error);
+      return res.status(404).json({ message: "Error fetching wishlist" });
     }
   },
 
-  removeFromWishlist: async (req, res) => {
+  removeWishlist : async (req, res) => {
+    const userId = req.user.id;
+    const productId = req.params.productId; // Get the product ID
+
     try {
-      //console.log("Request Body:", req.body);
-      const userId = req.body.userId; // Get the user ID from the request body
-      const productId = req.body.productId;
 
-      if (!productId) {
-        return res.status(400).json({ message: "Product ID is required" });
-      }
-
-      // Find the user's wishlist
-      const wishlist = await Wishlist.findOne({ user_id: userId });
-      if (!wishlist) {
-        return res.status(404).json({ message: "Wishlist not found" });
-      }
-
-      // Find the product in the wishlist
-      const productIndex = wishlist.products.findIndex((item) => {
-        console.log("Item:", item); // Log the entire 'item' object
-        console.log("Item.product_id:", item.product_id); // Log the product_id property
-        if (item && item.product_id) {
-          // Check if both item and item.product_id exist
-          return item.product_id.toString() === productId;
-        } else {
-          return false; // Handle cases where item or item.product_id is undefined
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ error: 'Invalid product ID' }); // 400 Bad Request
         }
-      });
 
-      // Remove the product from the wishlist
-      wishlist.products.splice(productIndex, 1);
-
-      // Save the updated wishlist
-      await wishlist.save();
-
-      res.status(200).json({ message: "Product removed from wishlist" });
+        const result = await removeProductFromWishlist(userId, productId);
+        res.json(result); // Send the result (success or not found)
     } catch (error) {
-      console.error("Error removing from wishlist:", error); // ... error handling ...
-      res.status(500).json({ message: "Server error" });
+        console.log(error);
+        res.status(500).json({ error: 'Failed to remove product from wishlist' });
     }
-  },
 
-  
+},
+
+
+
   // Order controllers
   UpdateOrderController: async (req, res) => {
     try {
@@ -606,16 +577,16 @@ const userController = {
       res.status(500).json({ message: "Server error" });
     }
   },
-  getOrdersByUserIdController : async (req, res) => {
+  getOrdersByUserIdController: async (req, res) => {
     try {
       const userId = req.user.id; // Assuming user ID is available in req.user
-  console.log("User ID:", userId); // Log the user ID for debugging
+      console.log("User ID:", userId); // Log the user ID for debugging
       const orders = await orderService.getOrdersByUserId(userId); // Call the service function
-  
+
       if (!orders || orders.length === 0) {
         return res.status(404).json({ message: 'No orders found for this user' });
       }
-  
+
       res.status(200).json({
         success: true,
         message: 'Orders retrieved successfully',
@@ -626,10 +597,10 @@ const userController = {
       res.status(500).json({ message: error.message || 'Server error' });
     }
   },
-  deleteOrderController : async (req, res) => {
+  deleteOrderController: async (req, res) => {
     try {
       const { orderId } = req.params;
-  
+
       const result = await orderService.deleteOrder(orderId);
       res.status(200).json({ success: true, message: result.message });
     } catch (error) {

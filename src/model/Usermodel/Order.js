@@ -47,7 +47,7 @@ const orderSchema = new mongoose.Schema({
   },
   delivery_status: {  // Trạng thái giao hàng
     type: String,
-    enum: ['Shipping', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
+    enum: ['Shipping', 'Delivered', 'Cancelled', 'Returned'],
     default: 'Pending'
   },
   shipping_address: {  // Tham chiếu đến mô hình Address

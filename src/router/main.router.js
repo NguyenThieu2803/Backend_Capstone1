@@ -24,9 +24,9 @@ router.get("/api/v1/getinventorybyproductid", userController.GetInventoryByProdu
 
 
 // Wishlist routes
-router.post("/api/v1/addwishlist/", userController.addToWishlist);
-router.get("/api/v1/wishlist/:id", userController.getWishlist);
-router.delete("/api/v1/removewishlist/", userController.removeFromWishlist);
+router.post("/api/v1/wishlist/:productId", authmiddlewareControll.verifyUser, userController.addToWishlist);
+router.get("/api/v1/wishlist/", authmiddlewareControll.verifyUser, userController.getWishlist);
+router.delete("/api/v1/wishlist/:productId", authmiddlewareControll.verifyUser, userController.removeWishlist);
 
 //review
 router.post("/api/v1/createReview", uploadCloud.array('image',5),userController.createReview);
