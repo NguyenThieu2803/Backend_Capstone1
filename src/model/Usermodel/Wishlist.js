@@ -7,10 +7,14 @@ const wishlistSchema = new mongoose.Schema({
     required: true
   },
   // Add the 'products' field to store an array of WishlistProduct IDs
-  products: [{ 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'WishlistProduct' // Reference to your WishlistProduct model
-  }]
+  product: [
+    {
+      product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+      },
+    }
+  ],
 });
 
 module.exports = mongoose.model('Wishlist', wishlistSchema);
