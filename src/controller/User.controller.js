@@ -734,10 +734,7 @@ const userController = {
   searchProducts: async (req, res) => {
     try {
       const { query } = req.query;
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const skip = (page - 1) * limit;
-
+      
       if (!query) {
         return res.status(400).json({
           success: false,
@@ -745,31 +742,38 @@ const userController = {
         });
       }
 
-      // Tạo regular expression để tìm kiếm không phân biệt hoa thường
       const searchRegex = new RegExp(query, 'i');
-
-      // Tìm kiếm sản phẩm theo tên
+      
       const products = await Product.find({
         name: { $regex: searchRegex }
-      })
-        .skip(skip)
-        .limit(limit);
+      }).select('-__v'); // Select all fields except __v
 
-      // Đếm tổng số sản phẩm tìm được
-      const total = await Product.countDocuments({
-        name: { $regex: searchRegex }
-      });
+      console.log('Found products:', products); // Debug log
 
       res.status(200).json({
         success: true,
         data: {
-          products,
-          pagination: {
-            total,
-            page,
-            pages: Math.ceil(total / limit),
-            per_page: limit
-          }
+          products: products.map(product => ({
+            _id: product._id,
+            name: product.name,
+            description: product.description,
+            shortDescription: product.shortDescription,
+            price: product.price,
+            dimensions: product.dimensions,
+            stockQuantity: product.stockQuantity,
+            material: product.material,
+            color: product.color,
+            images: product.images,
+            category: product.category,
+            discount: product.discount,
+            promotionId: product.promotionId,
+            brand: product.brand,
+            style: product.style,
+            assemblyRequired: product.assemblyRequired,
+            weight: product.weight,
+            sold: product.sold,
+            rating: product.rating,
+          }))
         }
       });
 
@@ -777,7 +781,7 @@ const userController = {
       console.error('Error searching products:', error);
       res.status(500).json({
         success: false,
-        message: "Lỗi server khi tìm kiếm sản phẩm",
+        message: "Server error while searching products",
         error: error.message
       });
     }

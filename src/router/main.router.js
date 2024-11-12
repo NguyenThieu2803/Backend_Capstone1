@@ -54,6 +54,6 @@ router.delete("/api/v1/address", authmiddlewareControll.verifyUser, userControll
 router.get("/api/v1/address", authmiddlewareControll.verifyUser, userController.getAllAddresses);
 
 // Search route
-router.get("/api/v1/products/search", userController.searchProducts);
+router.get("/api/v1/search", userController.searchProducts);
 
 module.exports = router;
