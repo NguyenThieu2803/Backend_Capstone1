@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Review = require('./Review');
 
 const userSchema = mongoose.Schema({
   user_name: {
@@ -34,6 +35,10 @@ const userSchema = mongoose.Schema({
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Product'
+    },
+    confirmedReviews: {
+      type: Boolean,
+    default: false
     },
     purchaseDate: {
       type: Date,

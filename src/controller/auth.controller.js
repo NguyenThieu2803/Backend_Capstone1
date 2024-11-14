@@ -346,7 +346,10 @@ const authController = {
     } catch (error) {
       res.status(500).json({ message: 'Error getting user profile', error: error.message });
     }
-  }
+  },
+
+  // get history product bought by user
+  
 }
 
 module.exports = authController;

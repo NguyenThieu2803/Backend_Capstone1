@@ -103,20 +103,7 @@ const createOrder = async (params) => {
       );
     }
     await CartService.serviceRemoveProductFromCart(params.userId, params.products);
-    await User.findByIdAndUpdate(
-      user._id,
-      {
-        $push: {
-          purchaseHistory: {
-            $each: productDetails.map(item => ({
-              product: item.product.productId,
-              purchaseDate: new Date()
-            }))
-          }
-        }
-      },
-      { new: true }
-    );
+   
 
     return order;
   } catch (error) {

@@ -56,4 +56,12 @@ router.get("/api/v1/address", authmiddlewareControll.verifyUser, userController.
 // Search route
 router.get("/api/v1/search", userController.searchProducts);
 
+// notification controller
+router.get("/api/v1/notifications", authmiddlewareControll.verifyUser, userController.getNotifications);
+router.put('/api/v1/notifications/:notificationId/read', authmiddlewareControll.verifyUser, userController.markNotificationAsRead);
+
+
+// Purchase History routes
+router.get('/api/v1/purchaseHistory', authmiddlewareControll.verifyUser, userController.getPurchaseHistory);
+
 module.exports = router;
