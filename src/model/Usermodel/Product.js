@@ -85,6 +85,17 @@ const productSchema = new Schema({
     min: 0,
     max: 5,
     default: 0
+  },
+  model3d: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v) {
+        // Kiểm tra URL Sketchfab hợp lệ
+        return !v || v.startsWith('https://sketchfab.com/models/') || v.startsWith('https://sketchfab.com/3d-models/');
+      },
+      message: 'Model3D URL must be a valid Sketchfab URL'
+    }
   }
 }, { timestamps: true });
 

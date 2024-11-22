@@ -6,6 +6,7 @@ const authController = require("./auth.controller");
 const Inventory = require("../model/Usermodel/Inventory");
 const bcrypt = require("bcryptjs");
 const Wishlist = require("../model/Usermodel/Wishlist"); // Import Wishlist model
+const WishlistProduct = require("../model/Usermodel/Wishlist_product");
 const Review = require("../model/Usermodel/Review");
 const Category = require("../model/Usermodel/Category");
 const multer = require("multer");
@@ -20,8 +21,7 @@ const asyncHandler = require('express-async-handler');
 const isProductInWishlist = require("../helper/CheckProductWishlist");
 const { removeProductFromWishlist } = require("../service/wishlist.service");
 const mongoose = require('mongoose');
-const notificationService = require("../service/notification.service");
-const purchaseHistoryService = require("../service/purchaseHistory.service");
+const Order = require("../model/Usermodel/Order");
 const userController = {
   //Get All users
   getAllUsers: async (req, res) => {
@@ -35,9 +35,8 @@ const userController = {
 
   createReview: async (req, res) => {
     try {
-      const fileData = req.files || [req.file];
       const { userId, productId, rating, comment } = req.body;
-
+      
       // Validate required fields
       if (!userId || !productId || !rating) {
         return res.status(400).json({
@@ -85,8 +84,11 @@ const userController = {
         });
       }
 
-      // Xử lý images
-      const images = fileData ? fileData.map((file) => file.path) : [];
+      // Xử lý images nếu có
+      let images = [];
+      if (req.files && req.files.length > 0) {
+        images = req.files.map(file => file.path);
+      }
 
       // Tạo đánh giá mới
       const review = await Review.create({
@@ -539,24 +541,24 @@ const userController = {
     }
   },
 
-  removeWishlist: async (req, res) => {
+  removeWishlist : async (req, res) => {
     const userId = req.user.id;
     const productId = req.params.productId; // Get the product ID
 
     try {
 
-      if (!mongoose.Types.ObjectId.isValid(productId)) {
-        return res.status(400).json({ error: 'Invalid product ID' }); // 400 Bad Request
-      }
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ error: 'Invalid product ID' }); // 400 Bad Request
+        }
 
-      const result = await removeProductFromWishlist(userId, productId);
-      res.json(result); // Send the result (success or not found)
+        const result = await removeProductFromWishlist(userId, productId);
+        res.json(result); // Send the result (success or not found)
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ error: 'Failed to remove product from wishlist' });
+        console.log(error);
+        res.status(500).json({ error: 'Failed to remove product from wishlist' });
     }
 
-  },
+},
 
 
 
@@ -735,7 +737,7 @@ const userController = {
   searchProducts: async (req, res) => {
     try {
       const { query } = req.query;
-
+      
       if (!query) {
         return res.status(400).json({
           success: false,
@@ -744,7 +746,7 @@ const userController = {
       }
 
       const searchRegex = new RegExp(query, 'i');
-
+      
       const products = await Product.find({
         name: { $regex: searchRegex }
       }).select('-__v'); // Select all fields except __v
@@ -802,24 +804,7 @@ const userController = {
         totalPrices,
         products
       });
-      // Create notifications for each product in the order
-      for (const product of products) {
-        try {
-          await notificationService.createNotification(
-            userId,
-            order._id,
-            product.productId,
-            'ORDER',
-            'Đơn hàng đã được đặt',
-            `Cảm ơn bạn đã mua sắm cùng FurniFit AR`
-          );
-        } catch (notificationError) {
-          console.error("Error creating notification:", notificationError);
-          // Consider handling the error more gracefully, e.g., logging it or sending a separate notification
-        }
-      }
 
-      await purchaseHistoryService.updatePurchaseHistory(userId);
       // Respond with the created order
       res.status(200).json({
         success: true,
@@ -836,58 +821,37 @@ const userController = {
     }
   }),
 
-  // notification controller
-  getNotifications: asyncHandler(async (req, res) => {
+  getDeliveredOrders: async (req, res) => {
     try {
-      const userId = req.user.id;
-      const notifications = await notificationService.getNotificationsByUserId(userId);
-      res.status(200).json(notifications);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  }),
-
-  markNotificationAsRead: asyncHandler(async (req, res) => {
-    try {
-      const userId = req.user.id;
-      const notificationId = req.params.notificationId;
-      const updatedNotification = await notificationService.markNotificationAsRead(userId, notificationId);
-
-      if (!updatedNotification) {
-        return res.status(404).json({ message: "Notification not found" });
+      const deliveredOrders = await Order.find({ 
+        delivery_status: 'Delivered',
+        payment_status: 'Completed'
+      })
+        .populate('user_id', 'user_name email') // Populate user information
+        .populate('products.product') // Populate product details
+        .populate('shipping_address'); // Populate shipping address
+  
+      if (!deliveredOrders || deliveredOrders.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy đơn hàng đã giao và đã thanh toán"
+        });
       }
-
-      res.status(200).json(updatedNotification);
-
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  }),
-
-  // purchase history controller
-  getPurchaseHistory: asyncHandler(async (req, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await User.findById(userId).populate('purchaseHistory.product');
-
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-
+  
       res.status(200).json({
         success: true,
-        purchaseHistory: user.purchaseHistory || []
+        count: deliveredOrders.length,
+        data: deliveredOrders
       });
-
     } catch (error) {
-      console.error("Error fetching purchase history:", error);
-      res.status(500).json({ message: "Server error" });
+      console.error('Error getting delivered orders:', error);
+      res.status(500).json({
+        success: false,
+        message: "Lỗi server khi lấy đơn hàng đã giao",
+        error: error.message
+      });
     }
-  }),
+  },
 
 };
 

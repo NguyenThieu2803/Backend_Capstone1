@@ -40,6 +40,7 @@ router.get("/api/v1/getAllCategories", userController.getAllCategories);
 router.post("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.checkout);
 router.put("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.UpdateOrderController);
 router.get('/api/v1/checkout', authmiddlewareControll.verifyUser, userController.getOrdersByUserIdController);
+router.get('/api/v1/orders/delivered', userController.getDeliveredOrders);
 
 // Card routes
 router.post("/api/v1/card", authmiddlewareControll.verifyUser, userController.addCard);
@@ -55,13 +56,5 @@ router.get("/api/v1/address", authmiddlewareControll.verifyUser, userController.
 
 // Search route
 router.get("/api/v1/search", userController.searchProducts);
-
-// notification controller
-router.get("/api/v1/notifications", authmiddlewareControll.verifyUser, userController.getNotifications);
-router.put('/api/v1/notifications/:notificationId/read', authmiddlewareControll.verifyUser, userController.markNotificationAsRead);
-
-
-// Purchase History routes
-router.get('/api/v1/purchaseHistory', authmiddlewareControll.verifyUser, userController.getPurchaseHistory);
 
 module.exports = router;
