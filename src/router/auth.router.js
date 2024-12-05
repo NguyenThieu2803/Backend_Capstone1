@@ -19,6 +19,8 @@ router.put('/api/auth/users/avatar', authmiddlewareControll.verifyUser, uploadCl
 // get user profile
 router.get('/api/auth/users/profile', authmiddlewareControll.verifyUser, authController.getUserProfile)
 
+router.post('/api/auth/social-login', authController.socialLogin);
+
 
 
 

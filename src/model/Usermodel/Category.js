@@ -11,8 +11,16 @@ const categorySchema = new Schema({
     type: String,
     trim: true
   },
-  images: [String]
-}, { timestamps: true });
+  images: [String],
+  salesCount: {
+    type: Number,
+    default: 0
+  }
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
 
 const Category = mongoose.model('Category', categorySchema);
 

@@ -7,7 +7,7 @@ const routes = require("./router/main.router");
 const connectDB = require('./config/connectdb');
 const port = process.env.POST || 5000;
 const localhost = process.env.HOST;
-
+const Adminrouter = require('./router/admin.router');
 const server = require('http').createServer(app);
 const { initSocketIO } = require('./config/socket'); // Change here
 const { io, userSockets } = initSocketIO(server); // Initialize Socket.IO
@@ -22,7 +22,7 @@ connectDB();
 // Routes
 app.use(routes);
 app.use(authrouter);
-
+app.use(Adminrouter);
 // Start server
 server.listen(port, localhost, () => {
     console.log(`Server listening at http://${localhost}:${port}`);

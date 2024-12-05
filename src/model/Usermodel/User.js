@@ -26,7 +26,11 @@ const userSchema = mongoose.Schema({
     type: [String],  // Array of strings
     default: []  // Default is an empty array
   },
-  role: Number,
+  role: {
+    type: Number,
+    default: 1,  // 1 for normal user, 0 for admin
+    enum: [0, 1]  // Only allow these values
+  },
   wishlist: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product'
@@ -56,7 +60,11 @@ const userSchema = mongoose.Schema({
   profileImage: {  // New field for profile image
     type: String,
     default: null // Default to null if not set
+  },
+  lastLogin: {
+    type: Date,
+    default: Date.now
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

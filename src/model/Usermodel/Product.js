@@ -85,6 +85,10 @@ const productSchema = new Schema({
     min: 0,
     max: 5,
     default: 0
+  },
+  model3d: {
+    type: String,
+    trim: true
   }
 }, { timestamps: true });
 

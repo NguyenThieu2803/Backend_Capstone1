@@ -16,7 +16,6 @@ const purchaseHistoryService = {
       if (!completedOrders || completedOrders.length === 0) {
         return; // No completed orders to process
       }
-
       let updatedProducts = [];
 
       for (const order of completedOrders) {

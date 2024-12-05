@@ -1,8 +1,8 @@
-
 const User = require('../model/Usermodel/User')
 const Notifications = require('../model/Usermodel/Notification')
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const admin = require('firebase-admin'); // Ensure Firebase Admin SDK is initialized
 // const Wishlist = require('../model/Wishlist');
 // const WishlistProduct = require('../model/Wishlist_product');
 
@@ -21,7 +21,7 @@ const authController = {
   generateAcessToken: (user) => {
     return jwt.sign({
       id: user._id,
-      admin: user.admin
+      role: user.role
     }, process.env.JWT_ACCESS_KEY)
   },
 
@@ -29,7 +29,7 @@ const authController = {
   generateRefreshToken: (user) => {
     return jwt.sign({
       id: user._id,
-      admin: user.admin
+      role: user.role
     }, process.env.JWT_FRESH_KEY,
       { expiresIn: '7d' })
   },
@@ -77,39 +77,53 @@ const authController = {
   //LOGIN
   loginUser: async (req, res) => {
     try {
+        // Thêm .select('+password') để lấy password field
+        const user = await User.findOne({ user_name: req.body.username }).select('+password');
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
-      const user = await User.findOne({ user_name: req.body.username });
-      console.log(req.body.username)
-      if (!user) return res.status(404).json({ message: 'User not found' });
+        // Thêm log để debug
+        console.log("Found user:", {
+            id: user._id,
+            role: user.role,
+            username: user.user_name
+        });
 
+        if (!req.body.password || req.body.password.trim() === '') {
+            return res.status(404).json({ message: 'Password is required' });
+        }
 
-      console.log(req.body.password)
-      console.log(user)
-      // Compare password
-      if (!req.body.password || req.body.password.trim() === '') return res.status(404).json({ message: 'Password is required' });
-      const comparePassword = await bcrypt.compare(req.body.password, user.password);
-      if (!comparePassword) return res.status(404).json({ message: 'Wrong password' });
-      else if (user && comparePassword) {
+        const comparePassword = await bcrypt.compare(req.body.password, user.password);
+        if (!comparePassword) {
+            return res.status(404).json({ message: 'Wrong password' });
+        }
 
+        // Generate tokens
+        const accesstoken = authController.generateAcessToken(user);
+        const refreshToken = authController.generateRefreshToken(user);
 
-        // Create and sign token
-        const accesstoken = authController.generateAcessToken(user)
-        const refreshToken = authController.generateRefreshToken(user)
+        // Log token payload
+        console.log("Token payload:", {
+            id: user._id,
+            role: user.role
+        });
+
         res.cookie('freshtoken', refreshToken, {
-          httpOnly: true,
-          secure: false,
-          path: '/',
-          sameSite: "strict"
-        })
-        const { _id, password, __v, ...others } = user._doc;
-        return res.status(200).json({ message: 'Login successful!', accesstoken, id: _id, ...others });
-      }
+            httpOnly: true,
+            secure: false,
+            path: '/',
+            sameSite: "strict"
+        });
 
-      // User logged in
+        const { password, __v, ...others } = user._doc;
+        return res.status(200).json({ 
+            message: 'Login successful!', 
+            accesstoken, 
+            user: { id: user._id, role: user.role, ...others }
+        });
 
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: 'Server error' });
+        console.log(error);
+        res.status(500).json({ message: 'Server error' });
     }
   },
 
@@ -349,7 +363,49 @@ const authController = {
   },
 
   // get history product bought by user
-  
+  socialLogin: async (req, res) => {
+    try {
+      const { firebaseToken } = req.headers;
+
+      // Verify Firebase token
+      const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+      const { uid, email, name, picture } = decodedToken;
+
+      // Check if user already exists
+      let user = await User.findOne({ email });
+
+      if (!user) {
+        // Create new user if not exists
+        user = new User({
+          user_name: name,
+          email: email,
+          profileImage: picture,
+          firebaseUid: uid,
+          role: 1, // Default role, adjust as needed
+        });
+        await user.save();
+      }
+
+      // Generate access and refresh tokens
+      const accessToken = authController.generateAcessToken(user);
+      const refreshToken = authController.generateRefreshToken(user);
+
+      res.status(200).json({
+        message: 'Social login successful!',
+        accessToken,
+        refreshToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.user_name,
+          profileImage: user.profileImage,
+        },
+      });
+    } catch (error) {
+      console.error('Error in social login:', error);
+      res.status(500).json({ message: 'Server error during social login' });
+    }
+  },
 }
 
 module.exports = authController;
