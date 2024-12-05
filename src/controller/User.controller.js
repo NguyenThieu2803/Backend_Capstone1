@@ -41,56 +41,14 @@ const userController = {
       if (!userId || !productId || !rating) {
         return res.status(400).json({
           success: false,
-          message: "Thiếu thông tin bắt buộc (userId, productId, rating)"
+          message: "Thiếu thông tin bắt buộc"
         });
       }
 
-      // Validate rating range
-      if (rating < 1 || rating > 5) {
-        return res.status(400).json({
-          success: false,
-          message: "Rating phải từ 1 đến 5"
-        });
-      }
+      // Get image URLs from Cloudinary upload
+      const images = req.files ? req.files.map(file => file.path) : [];
 
-      // Kiểm tra sản phẩm tồn tại
-      const product = await Product.findById(productId);
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: "Không tìm thấy sản phẩm"
-        });
-      }
-
-      // Kiểm tra user tồn tại
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "Không tìm thấy người dùng"
-        });
-      }
-
-      // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
-      const existingReview = await Review.findOne({
-        product_id: productId,
-        user_id: userId,
-      });
-
-      if (existingReview) {
-        return res.status(400).json({
-          success: false,
-          message: "Bạn đã đánh giá sản phẩm này trước đó"
-        });
-      }
-
-      // Xử lý images nếu có
-      let images = [];
-      if (req.files && req.files.length > 0) {
-        images = req.files.map(file => file.path);
-      }
-
-      // Tạo đánh giá mới
+      // Create review with image URLs
       const review = await Review.create({
         product_id: productId,
         user_id: userId,
@@ -100,36 +58,21 @@ const userController = {
         review_date: new Date()
       });
 
-      // Populate user information for response
       const populatedReview = await Review.findById(review._id)
         .populate('user_id', 'user_name email')
         .lean();
 
-      // Format response
-      const formattedReview = {
-        id: populatedReview._id,
-        rating: populatedReview.rating,
-        comment: populatedReview.comment,
-        review_date: populatedReview.review_date,
-        images: populatedReview.images,
-        user: {
-          id: populatedReview.user_id._id,
-          name: populatedReview.user_id.user_name,
-          email: populatedReview.user_id.email
-        }
-      };
-
       res.status(201).json({
         success: true,
         message: "Đánh giá đã được tạo thành công",
-        data: formattedReview
+        data: populatedReview
       });
 
     } catch (error) {
       console.error('Error in createReview:', error);
       res.status(500).json({
         success: false,
-        message: "Lỗi máy chủ",
+        message: "Lỗi server",
         error: error.message
       });
     }
@@ -852,6 +795,32 @@ const userController = {
       });
     }
   },
+
+  getARModel: async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const product = await Product.findById(productId);
+      
+      if (!product || !product.model3d) {
+        return res.status(404).json({
+          success: false,
+          message: "3D model not found for this product"
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        model3dUrl: product.model3d
+      });
+    } catch (error) {
+      console.error('Error fetching AR model:', error);
+      res.status(500).json({
+        success: false,
+        message: "Server error while fetching AR model",
+        error: error.message
+      });
+    }
+  }
 
 };
 

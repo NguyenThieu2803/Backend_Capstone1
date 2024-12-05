@@ -91,10 +91,10 @@ const productSchema = new Schema({
     trim: true,
     validate: {
       validator: function(v) {
-        // Kiểm tra URL Sketchfab hợp lệ
-        return !v || v.startsWith('https://sketchfab.com/models/') || v.startsWith('https://sketchfab.com/3d-models/');
+        // Kiểm tra URL AWS S3 hợp lệ
+        return !v || v.startsWith('https://ar-glb-storage.s3.ap-southeast-2.amazonaws.com/');
       },
-      message: 'Model3D URL must be a valid Sketchfab URL'
+      message: 'Model3D URL must be a valid AWS S3 URL from ar-glb-storage bucket'
     }
   }
 }, { timestamps: true });
