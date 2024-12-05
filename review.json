@@ -1,134 +1,482 @@
 [
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136beb" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9f9e" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377af" },
-    "rating": 5,
-    "comment": "Thiết kế sang trọng, rất phù hợp với phòng khách.",
-    "review_date": { "$date": "2024-11-02T13:20:00.000Z" },
-    "images": [
-      "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1730549237/review_images/image1.png"
-    ],
-    "createdAt": { "$date": "2024-11-02T13:20:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T13:20:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bec" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9f9f" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b0" },
-    "rating": 3,
-    "comment": "Chất lượng ổn nhưng giao hàng hơi chậm.",
-    "review_date": { "$date": "2024-11-02T14:35:00.000Z" },
-    "images": [],
-    "createdAt": { "$date": "2024-11-02T14:35:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T14:35:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bed" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9fa0" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b1" },
-    "rating": 4,
-    "comment": "Giá cả hợp lý, màu sắc đẹp và dễ phối đồ.",
-    "review_date": { "$date": "2024-11-02T15:50:00.000Z" },
-    "images": [
-      "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1730549237/review_images/image2.png"
-    ],
-    "createdAt": { "$date": "2024-11-02T15:50:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T15:50:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bee" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9fa1" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b2" },
-    "rating": 2,
-    "comment": "Chưa thực sự chắc chắn, cần cải thiện độ bền.",
-    "review_date": { "$date": "2024-11-02T16:15:00.000Z" },
-    "images": [],
-    "createdAt": { "$date": "2024-11-02T16:15:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T16:15:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bef" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9fa2" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b3" },
-    "rating": 5,
-    "comment": "Sản phẩm này hoàn hảo, chất liệu rất tốt!",
-    "review_date": { "$date": "2024-11-02T17:30:00.000Z" },
-    "images": [
-      "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1730549237/review_images/image3.png"
-    ],
-    "createdAt": { "$date": "2024-11-02T17:30:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T17:30:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bf0" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9fa3" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b4" },
-    "rating": 1,
-    "comment": "Thất vọng vì sản phẩm không giống hình.",
-    "review_date": { "$date": "2024-11-02T18:45:00.000Z" },
-    "images": [
-      "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1730549237/review_images/image4.png"
-    ],
-    "createdAt": { "$date": "2024-11-02T18:45:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T18:45:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bf1" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9fa4" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b5" },
-    "rating": 3,
-    "comment": "Chất liệu khá ổn, nhưng không phải tuyệt vời.",
-    "review_date": { "$date": "2024-11-02T19:00:00.000Z" },
-    "images": [],
-    "createdAt": { "$date": "2024-11-02T19:00:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T19:00:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bf2" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9fa5" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b6" },
-    "rating": 4,
-    "comment": "Rất hài lòng, giao hàng nhanh và sản phẩm đẹp.",
-    "review_date": { "$date": "2024-11-02T20:15:00.000Z" },
-    "images": [
-      "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1730549237/review_images/image5.png"
-    ],
-    "createdAt": { "$date": "2024-11-02T20:15:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T20:15:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bf3" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9fa6" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b7" },
-    "rating": 5,
-    "comment": "Đáng tiền, phù hợp với không gian nhà nhỏ.",
-    "review_date": { "$date": "2024-11-02T21:30:00.000Z" },
-    "images": [
-      "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1730549237/review_images/image6.png"
-    ],
-    "createdAt": { "$date": "2024-11-02T21:30:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T21:30:00.000Z" },
-    "__v": 0
-  },
-  {
-    "_id": { "$oid": "672615f5d4b0314a6a136bf4" },
-    "product_id": { "$oid": "67163fbc75e1384ad03f9fa7" },
-    "user_id": { "$oid": "66fb9b5353af5ba78dd377b8" },
-    "rating": 2,
-    "comment": "Cần cải thiện khâu đóng gói, dễ bị trầy xước.",
-    "review_date": { "$date": "2024-11-02T22:45:00.000Z" },
-    "images": [],
-    "createdAt": { "$date": "2024-11-02T22:45:00.000Z" },
-    "updatedAt": { "$date": "2024-11-02T22:45:00.000Z" },
-    "__v": 0
-  }
+      {
+        "dimensions": {
+            "height": 70,
+              "width": 12,
+              "depth": 12,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa7",
+          "name": "Modern Floor Lamp",
+          "description": "Elegant modern floor lamp with adjustable brightness.",
+          "shortDescription": "Floor lamp",
+          "price": 85,
+          "stockQuantity": 200,
+          "material": "Metal",
+          "color": {
+              "primary": "Silver",
+              "secondary": "Black"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1731514510/Modern_Floor_Lamp_pgi1mx.png"
+          ],
+          "category": "60c72b2f9b1e8e25c4d9b2f9",
+          "discount": 10,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3fa",
+          "brand": "BrightHome",
+          "style": "Modern",
+          "assemblyRequired": false,
+          "weight": 12,
+          "sold": 180,
+          "rating": 4.3,
+          "model3d": "https://sketchfab.com/3d-models/ar-code-1683008113119-7ac89235137847e2be70da3950a08f18"
+      },
+      {
+          "dimensions": {
+              "height": 20,
+              "width": 18,
+              "depth": 15,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9f9e",
+          "name": "Minimalist Nightstand",
+          "description": "Simple and functional minimalist nightstand.",
+          "shortDescription": "Functional nightstand",
+          "price": 80,
+          "stockQuantity": 200,
+          "material": "Wood",
+          "color": {
+              "primary": "White",
+              "secondary": "None"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1729861271/Minimalist_bedside_table_ok4qbk.png"
+          ],
+          "category": "60c72b2f9b1e8e25c4d9b2f9",
+          "discount": 0,
+          "promotionId": null,
+          "brand": "SimpleDecor",
+          "style": "Minimalist",
+          "assemblyRequired": false,
+          "weight": 12,
+          "sold": 150,
+          "rating": 4.3,
+          "model3d": "https://sketchfab.com/3d-models/minimalist-nightstand-692222"
+      },
+      {
+          "dimensions": {
+              "height": 30,
+              "width": 70,
+              "depth": 35,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9f9f",
+          "name": "Vintage Dining Table",
+          "description": "Large vintage wooden dining table, perfect for family dinners.",
+          "shortDescription": "Vintage dining table",
+          "price": 600,
+          "stockQuantity": 15,
+          "material": "Wood",
+          "color": {
+              "primary": "Oak",
+              "secondary": "None"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1729861393/Vintage_Dining_Table_nspr3b.png"
+          ],
+          "category": "671b888632dd1d49d18e96ed",
+          "discount": 20,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f3",
+          "brand": "RetroFurnish",
+          "style": "Vintage",
+          "assemblyRequired": true,
+          "weight": 75,
+          "sold": 8,
+          "rating": 4.6,
+          "model3d": "https://sketchfab.com/3d-models/vintage-dining-table-692222"
+      },
+      {
+          "dimensions": {
+              "height": 72,
+              "width": 36,
+              "depth": 12,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa3",
+          "name": "Classic Bookshelf",
+          "description": "A classic wooden bookshelf with adjustable shelves.",
+          "shortDescription": "Wooden bookshelf",
+          "price": 300,
+          "stockQuantity": 60,
+          "material": "Wood",
+          "color": {
+              "primary": "Cherry",
+              "secondary": "None"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1731513951/Classic_Bookshelf_rk8rys.png"
+          ],
+          "category": "60c72b2f9b1e8e25c4d9b2f9",
+          "discount": 0,
+          "promotionId": null,
+          "brand": "ClassyHome",
+          "style": "Classic",
+          "assemblyRequired": true,
+          "weight": 40,
+          "sold": 25,
+          "rating": 4.5,
+          "model3d": "https://sketchfab.com/3d-models/classic-bookshelf-692222"
+      },
+      {
+          "dimensions": {
+              "height": 12,
+              "width": 60,
+              "depth": 80,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa5",
+          "name": "Memory Foam Mattress",
+          "description": "High-quality memory foam mattress for ultimate comfort.",
+          "shortDescription": "Comfortable memory foam mattress",
+          "price": 650,
+          "stockQuantity": 30,
+          "material": "Memory Foam",
+          "color": {
+              "primary": "White",
+              "secondary": "None"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1731513951/Memory_Foam_Mattress_up8hpv.png"
+          ],
+          "category": "60c72b2f9b1e8e25c4d9b2f9",
+          "discount": 15,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f8",
+          "brand": "SleepWell",
+          "style": "Modern",
+          "assemblyRequired": false,
+          "weight": 70,
+          "sold": 60,
+          "rating": 4.9,
+          "model3d": "https://sketchfab.com/3d-models/memory-foam-mattress-692222"
+      },
+      {
+          "dimensions": {
+              "height": 35,
+              "width": 80,
+              "depth": 35,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9f9d",
+          "name": "Luxury Leather Sofa",
+          "description": "Comfortable and stylish luxury leather sofa.",
+          "shortDescription": "Luxury leather sofa",
+          "price": 1200,
+          "stockQuantity": 20,
+          "material": "Leather",
+          "color": {
+              "primary": "Black",
+              "secondary": "None"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1729860853/Luxury_Leather_Sofa_ls6qgu.png"
+          ],
+          "category": "671b888632dd1d49d18e96ec",
+          "discount": 5,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f2",
+          "brand": "LuxHome",
+          "style": "Contemporary",
+          "assemblyRequired": false,
+          "weight": 90,
+          "sold": 40,
+          "rating": 4.9,
+          "model3d": "https://sketchfab.com/3d-models/luxury-leather-sofa-692222"
+      },
+      {
+          "dimensions": {
+              "height": 36,
+              "width": 96,
+              "depth": 60,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa4",
+          "name": "Outdoor Patio Set",
+          "description": "Durable outdoor patio set perfect for entertaining guests.",
+          "shortDescription": "Patio furniture set",
+          "price": 800,
+          "stockQuantity": 10,
+          "material": "Rattan",
+          "color": {
+              "primary": "Beige",
+              "secondary": "Brown"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1731513993/Outdoor_Patio_Set_vrkhkf.png"
+          ],
+          "category": "671b888632dd1d49d18e96f4",
+          "discount": 20,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f7",
+          "brand": "OutdoorLiving",
+          "style": "Contemporary",
+          "assemblyRequired": true,
+          "weight": 150,
+          "sold": 5,
+          "rating": 4.8,
+          "model3d": "https://sketchfab.com/3d-models/outdoor-patio-set-692222"
+      },
+      {
+          "dimensions": {
+              "height": 36,
+              "width": 40,
+              "depth": 24,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa6",
+          "name": "Portable Barbecue Grill",
+          "description": "A lightweight and portable barbecue grill for outdoor cooking.",
+          "shortDescription": "Portable grill",
+          "price": 180,
+          "stockQuantity": 100,
+          "material": "Steel",
+          "color": {
+              "primary": "Black",
+              "secondary": "Red"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1731513951/Portable_Barbecue_Grill_yw5vxx.png"
+          ],
+          "category": "671b888632dd1d49d18e96f4",
+          "discount": 5,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f9",
+          "brand": "GrillMaster",
+          "style": "Outdoor",
+          "assemblyRequired": true,
+          "weight": 45,
+          "sold": 70,
+          "rating": 4.6,
+          "model3d": "https://sketchfab.com/3d-models/portable-barbecue-grill-692222"
+      },
+      {
+          "dimensions": {
+              "height": 30,
+              "width": 60,
+              "depth": 28,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa8",
+          "name": "Gaming Desk",
+          "description": "Spacious gaming desk with built-in cable management system.",
+          "shortDescription": "Gaming desk",
+          "price": 250,
+          "stockQuantity": 75,
+          "material": "Wood and Steel",
+          "color": {
+              "primary": "Black",
+              "secondary": "Red"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1731514511/Gaming_Desk_bnmkds.png"
+          ],
+          "category": "60c72b2f9b1e8e25c4d9b2f9",
+          "discount": 20,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3fb",
+          "brand": "GamePro",
+          "style": "Modern",
+          "assemblyRequired": true,
+          "weight": 40,
+          "sold": 50,
+          "rating": 4.7,
+          "model3d": "https://sketchfab.com/3d-models/gaming-desk-692222"
+      },
+      {
+          "dimensions": {
+              "height": 40,
+              "width": 20,
+              "depth": 20,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9f9b",
+          "name": "Modern Wooden Chair",
+          "description": "A sleek and modern wooden chair perfect for any home or office.",
+          "shortDescription": "Stylish wooden chair",
+          "price": 150.99,
+          "stockQuantity": 100,
+          "material": "Wood",
+          "color": {
+              "primary": "Brown",
+              "secondary": "Black"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1729860181/Modern_Wooden_Chair_xj65ms.png"
+          ],
+          "category": "671b888632dd1d49d18e96ee",
+          "discount": 10,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f0",
+          "brand": "FurniCo",
+          "style": "Modern",
+          "assemblyRequired": true,
+          "weight": 15,
+          "sold": 25,
+          "rating": 3,
+          "model3d": "https://sketchfab.com/3d-models/modern-wooden-chair-692222"
+      },
+      {
+          "dimensions": {
+              "height": 40,
+              "width": 30,
+              "depth": 35,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa9",
+          "name": "Leather Recliner",
+          "description": "Luxurious leather recliner chair with adjustable settings.",
+          "shortDescription": "Leather recliner chair",
+          "price": 700,
+          "stockQuantity": 25,
+          "material": "Leather",
+          "color": {
+              "primary": "Brown",
+              "secondary": "None"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1731514510/Leather_Recliner_vloior.png"
+          ],
+          "category": "60c72b2f9b1e8e25c4d9b2f9",
+          "discount": 10,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3fc",
+          "brand": "ComfortMax",
+          "style": "Luxury",
+          "assemblyRequired": false,
+          "weight": 90,
+          "sold": 20,
+          "rating": 4.9,
+          "model3d": "https://sketchfab.com/3d-models/leather-recliner-692222"
+      },
+      {
+          "dimensions": {
+              "height": 30,
+              "width": 60,
+              "depth": 30,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9f9c",
+          "name": "Ergonomic Office Desk",
+          "description": "This ergonomic office desk provides comfort and efficiency for long work hours.",
+          "shortDescription": "Comfortable office desk",
+          "price": 350.5,
+          "stockQuantity": 50,
+          "material": "Steel",
+          "color": {
+              "primary": "Gray",
+              "secondary": "White"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1729860748/Ergonomic_Office_Desk1_x16q65.png"
+          ],
+          "category": "60c72b2f9b1e8e25c4d9b2f9",
+          "discount": 15,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f1",
+          "brand": "WorkPro",
+          "style": "Ergonomic",
+          "assemblyRequired": false,
+          "weight": 45,
+          "sold": 120,
+          "rating": 4.7,
+          "model3d": "https://sketchfab.com/3d-models/ergonomic-office-desk-692222"
+      },
+      {
+          "dimensions": {
+              "height": 18,
+              "width": 8,
+              "depth": 8,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa0",
+          "name": "Smart LED Lamp",
+          "description": "Smart LED lamp with adjustable brightness and color settings.",
+          "shortDescription": "Smart LED lamp",
+          "price": 45.99,
+          "stockQuantity": 500,
+          "material": "Plastic",
+          "color": {
+              "primary": "White",
+              "secondary": "Silver"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1729861531/Smart_LED_Lamp_elg6w0.png"
+          ],
+          "category": "60c72b2f9b1e8e25c4d9b2f9",
+          "discount": 10,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f4",
+          "brand": "TechBright",
+          "style": "Modern",
+          "assemblyRequired": false,
+          "weight": 5,
+          "sold": 300,
+          "rating": 4.8,
+          "model3d": "https://sketchfab.com/3d-models/smart-led-lamp-692222"
+      },
+      {
+          "dimensions": {
+              "height": 45,
+              "width": 25,
+              "depth": 25,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa1",
+          "name": "Adjustable Office Chair",
+          "description": "Ergonomically designed adjustable office chair for ultimate comfort.",
+          "shortDescription": "Ergonomic office chair",
+          "price": 175,
+          "stockQuantity": 150,
+          "material": "Mesh",
+          "color": {
+              "primary": "Black",
+              "secondary": "Gray"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1729861741/Adjustable_Office_Chair_arwxl0.png"
+          ],
+          "category": "671b888632dd1d49d18e96ee",
+          "discount": 12,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f5",
+          "brand": "OfficeFlex",
+          "style": "Contemporary",
+          "assemblyRequired": true,
+          "weight": 20,
+          "sold": 90,
+          "rating": 4.2,
+          "model3d": "https://sketchfab.com/3d-models/adjustable-office-chair-692222"
+      },
+      {
+          "dimensions": {
+              "height": 18,
+              "width": 48,
+              "depth": 24,
+              "unit": "in"
+          },
+          "_id": "67163fbc75e1384ad03f9fa2",
+          "name": "Wooden Coffee Table",
+          "description": "A handcrafted wooden coffee table that complements any living room.",
+          "shortDescription": "Wooden coffee table",
+          "price": 220,
+          "stockQuantity": 80,
+          "material": "Wood",
+          "color": {
+              "primary": "Walnut",
+              "secondary": "None"
+          },
+          "images": [
+              "https://res.cloudinary.com/dlg8sbaeb/image/upload/v1729861909/Wooden_Coffee_Table_ryto9u.png"
+          ],
+          "category": "671b888632dd1d49d18e96ed",
+          "discount": 15,
+          "promotionId": "60c72b2f9b1e8e25c4d9b3f6",
+          "brand": "RusticLiving",
+          "style": "Rustic",
+          "assemblyRequired": false,
+          "weight": 35,
+          "sold": 50,
+          "rating": 4.4,
+          "model3d": "https://sketchfab.com/3d-models/wooden-coffee-table-692222"
+      }
 ]
