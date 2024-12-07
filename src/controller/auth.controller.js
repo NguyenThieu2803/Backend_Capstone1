@@ -129,7 +129,7 @@ const authController = {
 
   updatePhoneNumber: async (req, res) => {
     try {
-      const userId = req.params.userId;  // Get user ID from the URL parameters
+      const userId = req.user.id;  // Get user ID from the URL parameters
       const { newPhoneNumber } = req.body;
 
       // 1. Find the user by user_id 
@@ -154,7 +154,7 @@ const authController = {
   },
   updateEmail: async (req, res) => {//update email
     try {
-      const userId = req.params.userId;
+      const userId = req.user.id;
       const { newEmail } = req.body;
 
       // 1. Find the user by user_id
@@ -186,7 +186,7 @@ const authController = {
   },
   updatePassword: async (req, res) => {
     try {
-      const userId = req.params.userId;
+      const userId = req.user.id;
       const { currentPassword, newPassword } = req.body;
 
       // 1. Find the user by user_id
@@ -355,7 +355,6 @@ const authController = {
         return res.status(404).json({ message: 'User not found' });
       }
       const { password, isBlocked, role, stripeCustomerId, ...others } = user._doc;
-      // res.status(200).json({ message: 'Login successful!', accesstoken, ...others });
       res.status(200).json({ message: 'User Profile:', ...others }); // Send the user data as a JSON response
     } catch (error) {
       res.status(500).json({ message: 'Error getting user profile', error: error.message });

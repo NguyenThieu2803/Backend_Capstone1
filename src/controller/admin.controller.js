@@ -42,7 +42,8 @@ const adminController = {
                 assemblyRequired,
                 weight,
                 images,
-                model3d
+                model3d,
+                sales
             } = req.body;
 
             const newProduct = new Product({
@@ -60,7 +61,8 @@ const adminController = {
                 brand,
                 style,
                 assemblyRequired: assemblyRequired === 'true',
-                weight: weight ? parseFloat(weight) : undefined
+                weight: weight ? parseFloat(weight) : undefined,
+                sales: parseInt(sales) || 0
             });
 
             console.log('New product data:', newProduct); // Debug log
@@ -141,87 +143,82 @@ const adminController = {
     // Edit product with inventory sync
     editProduct: async (req, res) => {
         try {
-            const { productId } = req.body;
+            const { productId } = req.params;
             const updateData = { ...req.body };
-            delete updateData.productId;
 
-            // Xử lý các trường đặc biệt
-            if (updateData.dimensions) {
-                updateData.dimensions = JSON.parse(updateData.dimensions);
-            }
-            if (updateData.color) {
-                updateData.color = JSON.parse(updateData.color);
-            }
-            if (updateData.price) {
-                updateData.price = parseFloat(updateData.price);
-            }
-            if (updateData.stockQuantity) {
-                updateData.stockQuantity = parseInt(updateData.stockQuantity);
-            }
-            if (updateData.discount) {
-                updateData.discount = parseFloat(updateData.discount);
-            }
-            if (updateData.weight) {
-                updateData.weight = parseFloat(updateData.weight);
-            }
-            if (updateData.assemblyRequired) {
-                updateData.assemblyRequired = updateData.assemblyRequired === 'true';
-            }
-
-            // Xử lý files upload
-            if (req.files) {
-                // Xử lý file ảnh mới
-                if (req.files.images && req.files.images.length > 0) {
-                    updateData.images = req.files.images.map(file => file.path || file.location);
-                }
-
-                // Xử lý file model 3D mới
-                if (req.files.model3d && req.files.model3d.length > 0) {
-                    updateData.model3d = req.files.model3d[0].location;
-                }
-            }
-
-            // Cập nhật sản phẩm
-            const updatedProduct = await Product.findByIdAndUpdate(
-                productId,
-                updateData,
-                { new: true, runValidators: true }
-            );
-
-            if (!updatedProduct) {
+            // Kiểm tra sự tồn t�i của sản phẩm
+            const existingProduct = await Product.findById(productId);
+            if (!existingProduct) {
                 return res.status(404).json({
                     success: false,
                     message: 'Product not found'
                 });
             }
 
-            // Cập nhật inventory
-            const inventoryUpdate = {
-                name: updateData.name,
-                stockQuantity: updateData.stockQuantity,
-                price: updateData.price,
-                category: updateData.category,
-                brand: updateData.brand,
-                material: updateData.material,
-                color: updateData.color
-            };
+            // Xử lý các trường đặc biệt
+            if (updateData.dimensions) {
+                try {
+                    updateData.dimensions = typeof updateData.dimensions === 'string' 
+                        ? JSON.parse(updateData.dimensions)
+                        : updateData.dimensions;
+                } catch (error) {
+                    console.error('Error parsing dimensions:', error);
+                }
+            }
 
-            const updatedInventory = await Inventory.findOneAndUpdate(
+            // Chuyển đổi kiểu dữ liệu
+            if (updateData.price) updateData.price = parseFloat(updateData.price);
+            if (updateData.stockQuantity) updateData.stockQuantity = parseInt(updateData.stockQuantity);
+            if (updateData.discount) updateData.discount = parseFloat(updateData.discount);
+            if (updateData.weight) updateData.weight = parseFloat(updateData.weight);
+            if (updateData.assemblyRequired !== undefined) {
+                updateData.assemblyRequired = updateData.assemblyRequired === true || updateData.assemblyRequired === 'true';
+            }
+
+            // Cập nhật sản phẩm
+            const updatedProduct = await Product.findByIdAndUpdate(
+                productId,
+                { $set: updateData },
+                { new: true, runValidators: true }
+            );
+
+            // Cập nhật inventory tư�ng ứng
+            await Inventory.findOneAndUpdate(
                 { productId: productId },
-                inventoryUpdate,
+                {
+                    name: updateData.name,
+                    stockQuantity: updateData.stockQuantity,
+                    price: updateData.price,
+                    category: updateData.category,
+                    brand: updateData.brand,
+                    material: updateData.material
+                },
                 { new: true }
             );
 
+            // Lấy thông tin category
+            let categoryInfo = null;
+            if (updatedProduct.category) {
+                categoryInfo = await Category.findById(updatedProduct.category)
+                    .select('name description')
+                    .lean();
+            }
+
+            // Response thành công
             res.status(200).json({
                 success: true,
-                message: 'Product and inventory updated successfully',
-                product: updatedProduct,
-                inventory: updatedInventory
+                message: 'Product updated successfully',
+                data: {
+                    ...updatedProduct.toObject(),
+                    categoryInfo: categoryInfo || { name: updatedProduct.category }
+                }
             });
+
         } catch (error) {
+            console.error('Error updating product:', error);
             res.status(500).json({
                 success: false,
-                message: 'Error updating product and inventory',
+                message: 'Error updating product',
                 error: error.message
             });
         }
@@ -230,7 +227,7 @@ const adminController = {
     // Delete product with inventory
     deleteProduct: async (req, res) => {
         try {
-            const { productId } = req.body;
+            const { productId } = req.params;
             
             // Delete product
             const deletedProduct = await Product.findByIdAndDelete(productId);
@@ -249,6 +246,7 @@ const adminController = {
                 message: 'Product and inventory deleted successfully'
             });
         } catch (error) {
+            console.error('Error deleting product:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error deleting product and inventory',
@@ -269,11 +267,11 @@ const adminController = {
             const lowStockCount = await Product.countDocuments({ stockQuantity: { $lt: 10 } });
     
             // Total Revenue
-            const totalRevenueResult = await Order.aggregate([
+            const totalRevenueResult = await Product.aggregate([
                 {
                     $group: {
                         _id: null,
-                        totalRevenue: { $sum: "$total_amount" }
+                        totalRevenue: { $sum: "$price" }
                     }
                 }
             ]);
@@ -589,46 +587,63 @@ const adminController = {
             // Build query
             const query = {};
             
-            // Add search functionality
             if (search) {
-                query.name = { $regex: search, $options: 'i' };
+                query.$or = [
+                    { name: { $regex: search, $options: 'i' } },
+                    { description: { $regex: search, $options: 'i' } },
+                    { brand: { $regex: search, $options: 'i' } }
+                ];
             }
 
-            // Add category filter
             if (category) {
                 query.category = category;
             }
 
-            // Calculate skip for pagination
             const skip = (parseInt(page) - 1) * parseInt(limit);
-
-            // Build sort object
             const sortOptions = {};
             sortOptions[sortBy] = order === 'asc' ? 1 : -1;
 
-            // Get products with pagination and sorting
+            // Get products with all necessary fields
             const products = await Product.find(query)
-                .select('name category price stockQuantity sold images')
+                .select('-__v')
                 .sort(sortOptions)
                 .skip(skip)
                 .limit(parseInt(limit));
 
-            // Get total count for pagination
             const totalProducts = await Product.countDocuments(query);
             const totalPages = Math.ceil(totalProducts / limit);
+
+            // Get categories for reference
+            const categories = await Category.find().lean();
+            const categoryMap = new Map(categories.map(cat => [cat.name, cat]));
+
+            // Format product data
+            const formattedProducts = products.map(product => ({
+                id: product._id,
+                name: product.name,
+                description: product.description,
+                shortDescription: product.shortDescription,
+                price: product.price,
+                dimensions: product.dimensions,
+                stockQuantity: product.stockQuantity,
+                material: product.material,
+                category: product.category,
+                categoryInfo: categoryMap.get(product.category) || { name: product.category },
+                discount: product.discount,
+                brand: product.brand,
+                style: product.style,
+                assemblyRequired: product.assemblyRequired,
+                weight: product.weight,
+                images: product.images,
+                model3d: product.model3d,
+                sales: product.sold,
+                rating: product.rating
+            }));
 
             res.status(200).json({
                 success: true,
                 data: {
-                    products: products.map(product => ({
-                        id: product._id,
-                        name: product.name,
-                        category: product.category,
-                        price: product.price,
-                        stock: product.stockQuantity,
-                        sales: product.sold,
-                        image: product.images[0] || null
-                    })),
+                    products: formattedProducts,
                     pagination: {
                         currentPage: parseInt(page),
                         totalPages,
@@ -653,8 +668,7 @@ const adminController = {
     getProductById: async (req, res) => {
         try {
             const { productId } = req.params;
-            const product = await Product.findById(productId)
-                .populate('category');
+            const product = await Product.findById(productId).lean();
 
             if (!product) {
                 return res.status(404).json({
@@ -663,14 +677,29 @@ const adminController = {
                 });
             }
 
+            // Get inventory information
+            const inventory = await Inventory.findOne({ productId: productId }).lean();
+            
+            // Get category information
+            const category = await Category.findOne({ name: product.category }).lean();
+
+            // Combine all data
+            const productData = {
+                ...product,
+                inventoryInfo: inventory || {},
+                categoryInfo: category || { name: product.category }
+            };
+
             res.status(200).json({
                 success: true,
-                product
+                data: productData
             });
+
         } catch (error) {
+            console.error('Error fetching product:', error);
             res.status(500).json({
                 success: false,
-                message: 'Error fetching product',
+                message: 'Error fetching product details',
                 error: error.message
             });
         }
@@ -943,71 +972,65 @@ const adminController = {
 
     getSalesByMonth: async (req, res) => {
         try {
-            // Set the date range to include November 2024
-            const endDate = new Date('2024-12-31');
+            // Set date range for 2024
             const startDate = new Date('2024-01-01');
+            const endDate = new Date('2024-12-31');
 
-            console.log('Date Range:', { startDate, endDate }); // Debug log
-
-            const salesByMonth = await Order.aggregate([
-                // Match orders within date range and completed status
-                { 
-                    $match: { 
+            const monthlySales = await Order.aggregate([
+                // Match orders from 2024 and completed status
+                {
+                    $match: {
                         payment_status: "Completed",
-                        orderDate: {  
-                            $gte: startDate, 
-                            $lte: endDate 
+                        createdAt: {
+                            $gte: startDate,
+                            $lte: endDate
                         }
                     }
                 },
-                // Convert orderDate string to Date object
-                {
-                    $addFields: {
-                        order_date: { $toDate: "$orderDate" }
-                    }
-                },
-                // Unwind products array
-                { $unwind: "$products" },
-                // Group by year and month
+                // Group by month
                 {
                     $group: {
-                        _id: {
-                            year: { $year: "$orderDate" },
-                            month: { $month: "$orderDate" }
-                        },
-                        totalSales: { $sum: "$totalAmount" },
-                        totalQuantity: { $sum: "$products.quantity" },
-                        orders: { $addToSet: "$_id" }
+                        _id: { $month: "$createdAt" },
+                        totalRevenue: { $sum: "$total_amount" },
+                        orderCount: { $sum: 1 }
                     }
                 },
-                // Sort by year and month
-                { $sort: { "_id.year": 1, "_id.month": 1 } },
-                // Project the final output
+                // Sort by month
                 {
-                    $project: {
-                        year: "$_id.year",
-                        month: "$_id.month",
-                        totalSales: { $round: ["$totalSales", 2] },
-                        totalQuantity: 1,
-                        numberOfOrders: { $size: "$orders" },
-                        _id: 0
-                    }
+                    $sort: { "_id": 1 }
                 }
             ]);
 
-            console.log('Aggregation Results:', salesByMonth); // Debug log
+            // Create array for all months (1-12)
+            const allMonths = Array.from({ length: 12 }, (_, i) => {
+                const monthData = monthlySales.find(m => m._id === (i + 1)) || {
+                    _id: i + 1,
+                    totalRevenue: 0,
+                    orderCount: 0
+                };
 
-            const formattedSales = salesByMonth.map(month => ({
-                monthYear: `${month.year}-${month.month.toString().padStart(2, '0')}`,
-                totalSales: month.totalSales,
-                totalQuantity: month.totalQuantity,
-                numberOfOrders: month.numberOfOrders
-            }));
+                return {
+                    month: i + 1,
+                    monthName: new Date(2024, i).toLocaleString('en-US', { month: 'long' }),
+                    revenue: parseFloat(monthData.totalRevenue.toFixed(2)),
+                    orders: monthData.orderCount
+                };
+            });
+
+            // Calculate totals
+            const totalRevenue = allMonths.reduce((sum, month) => sum + month.revenue, 0);
+            const totalOrders = allMonths.reduce((sum, month) => sum + month.orders, 0);
 
             res.status(200).json({
                 success: true,
-                data: formattedSales,
-                message: 'Sales by month retrieved successfully'
+                data: {
+                    monthlySales: allMonths,
+                    summary: {
+                        totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+                        totalOrders,
+                        averageMonthlyRevenue: parseFloat((totalRevenue / 12).toFixed(2))
+                    }
+                }
             });
 
         } catch (error) {
@@ -1240,44 +1263,104 @@ const adminController = {
     // Get Category Distribution
     getCategoryDistribution: async (req, res) => {
         try {
-            const categoryDistribution = await Product.aggregate([
+            // First get all categories and log them
+            const categories = await Category.find({}, { name: 1 });
+            console.log('Available categories:', categories);
+
+            const categoriesMap = new Map(categories.map(cat => [cat._id.toString(), cat.name]));
+            console.log('Categories map:', Object.fromEntries(categoriesMap));
+
+            const categoryStats = await Order.aggregate([
+                {
+                    $match: {
+                        payment_status: "Completed",
+                        delivery_status: "Delivered"
+                    }
+                },
+                { $unwind: "$products" },
+                {
+                    $lookup: {
+                        from: "products",
+                        localField: "products.product",
+                        foreignField: "_id",
+                        as: "productInfo"
+                    }
+                },
+                {
+                    $unwind: {
+                        path: "$productInfo",
+                        preserveNullAndEmptyArrays: false
+                    }
+                },
+                // Add this stage to see what category IDs we're getting
+                {
+                    $project: {
+                        category: "$productInfo.category",
+                        amount: "$products.amount",
+                        quantity: "$products.quantity"
+                    }
+                },
                 {
                     $group: {
                         _id: "$category",
-                        count: { $sum: 1 },
-                        totalSales: { $sum: "$sold" }
+                        totalRevenue: { 
+                            $sum: { 
+                                $multiply: ["$amount", "$quantity"] 
+                            }
+                        },
+                        totalOrders: { $sum: 1 },
+                        totalQuantity: { $sum: "$quantity" }
                     }
                 },
                 {
-                    $project: {
-                        category: "$_id",
-                        count: 1,
-                        totalSales: 1,
-                        percentage: {
-                            $multiply: [
-                                { $divide: ["$count", { $sum: "$count" }] },
-                                100
-                            ]
-                        }
+                    $facet: {
+                        categories: [{ $match: {} }],
+                        totalRevenue: [
+                            {
+                                $group: {
+                                    _id: null,
+                                    total: { $sum: "$totalRevenue" }
+                                }
+                            }
+                        ]
                     }
-                },
-                { $sort: { totalSales: -1 } }
+                }
             ]);
 
-            const totalProducts = await Product.countDocuments();
+            console.log('Raw category stats:', JSON.stringify(categoryStats[0].categories, null, 2));
 
-            const formattedData = categoryDistribution.map(cat => ({
-                category: cat.category,
-                percentage: Math.round(cat.percentage),
-                count: cat.count,
-                totalSales: cat.totalSales
-            }));
+            // Format results with debugging
+            const formattedData = categoryStats[0]?.categories?.map(cat => {
+                const categoryName = categoriesMap.get(cat._id);
+                console.log('Looking up category:', {
+                    id: cat._id,
+                    foundName: categoryName
+                });
+                
+                return {
+                    category: categoryName || 'Unknown Category',
+                    percentage: categoryStats[0]?.totalRevenue[0]?.total > 0 
+                        ? parseFloat(((cat.totalRevenue / categoryStats[0].totalRevenue[0].total) * 100).toFixed(1))
+                        : 0,
+                    totalRevenue: parseFloat(cat.totalRevenue.toFixed(2)),
+                    totalOrders: cat.totalOrders,
+                    totalQuantity: cat.totalQuantity
+                };
+            }) || [];
+
+            // Sort by percentage descending
+            formattedData.sort((a, b) => b.percentage - a.percentage);
 
             res.status(200).json({
                 success: true,
                 data: {
                     distribution: formattedData,
-                    totalProducts
+                    summary: {
+                        totalCategories: formattedData.length,
+                        totalRevenue: parseFloat(categoryStats[0]?.totalRevenue[0]?.total?.toFixed(2)) || 0,
+                        totalOrders: formattedData.reduce((sum, cat) => sum + cat.totalOrders, 0),
+                        totalQuantity: formattedData.reduce((sum, cat) => sum + cat.totalQuantity, 0)
+                    }
                 }
             });
 
@@ -1469,7 +1552,74 @@ const adminController = {
                 error: error.message
             });
         }
-    }
+    },
+
+    // Add this new function to get category details
+    getCategoryDetails: async (req, res) => {
+        try {
+            const categories = await Category.find({}, {
+                _id: 1,
+                name: 1,
+                description: 1,
+                images: 1,
+                salesCount: 1
+            });
+
+            res.status(200).json({
+                success: true,
+                data: categories
+            });
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching categories',
+                error: error.message
+            });
+        }
+    },
+
+    getAllCategories: async (req, res) => {
+        try {
+            const categories = await Category.find()
+                .select('name description')
+                .sort({ name: 1 });
+
+            res.status(200).json({
+                success: true,
+                data: categories,
+                message: 'Categories fetched successfully'
+            });
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching categories',
+                error: error.message
+            });
+        }
+    },
+
+    getAllCategories: async (req, res) => {
+        try {
+            const categories = await Category.find()
+                .select('name description')
+                .sort({ name: 1 });
+
+            res.status(200).json({
+                success: true,
+                data: categories,
+                message: 'Categories fetched successfully'
+            });
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching categories',
+                error: error.message
+            });
+        }
+    },
 };
 
 module.exports = adminController;

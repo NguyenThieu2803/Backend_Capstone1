@@ -46,8 +46,8 @@ const productSchema = new Schema({
   images: [String],
   category: {
     type: String,
-    // ref: 'Category', 
-    required: true 
+    required: true,
+    trim: true
   },
   discount: {
     type: Number,

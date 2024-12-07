@@ -41,6 +41,7 @@ router.post("/api/v1/checkout", authmiddlewareControll.verifyUser, userControlle
 router.put("/api/v1/checkout", authmiddlewareControll.verifyUser, userController.UpdateOrderController);
 router.get('/api/v1/checkout', authmiddlewareControll.verifyUser, userController.getOrdersByUserIdController);
 router.get('/api/v1/orders/delivered', userController.getDeliveredOrders);
+router.delete("/api/v1/orders/:orderId", authmiddlewareControll.verifyUser, userController.deleteOrderController);
 
 // Card routes
 router.post("/api/v1/card", authmiddlewareControll.verifyUser, userController.addCard);
@@ -50,8 +51,8 @@ router.get("/api/v1/card", authmiddlewareControll.verifyUser, userController.get
 
 // Address routes
 router.post("/api/v1/address", authmiddlewareControll.verifyUser, userController.addAddress);
-router.put("/api/v1/address", authmiddlewareControll.verifyUser, userController.updateAddress);
-router.delete("/api/v1/address", authmiddlewareControll.verifyUser, userController.deleteAddress);
+router.put("/api/v1/address/:addressId", authmiddlewareControll.verifyUser, userController.updateAddress);
+router.delete("/api/v1/address/:addressId", authmiddlewareControll.verifyUser, userController.deleteAddress);
 router.get("/api/v1/address", authmiddlewareControll.verifyUser, userController.getAllAddresses);
 
 // Search route

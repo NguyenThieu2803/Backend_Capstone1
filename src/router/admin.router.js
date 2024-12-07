@@ -6,14 +6,18 @@ const Adminrouter = express.Router();
 const adminController = require("../controller/admin.controller");
 const { upload, handleUploads } = require('../middleware/Upload/ProductUpload');
 const awsUpload = require("../middleware/Upload/AWSmodel.update");
+const { updateUpload, handleFileUpdates } = require('../middleware/Upload/Uploadedit');
 
 // Product Management Routes
 Adminrouter.get("/api/v1/product-stats", authmiddlewareControll.verifyUserandAdmin, adminController.getProductStats);
 Adminrouter.post("/api/v1/addproduct", authmiddlewareControll.verifyUserandAdmin, upload, handleUploads, adminController.addProduct);
 Adminrouter.get("/api/v1/products", authmiddlewareControll.verifyUserandAdmin, adminController.getAllProducts);
 Adminrouter.get("/api/v1/product/:productId", authmiddlewareControll.verifyUserandAdmin, adminController.getProductById);
-Adminrouter.put("/api/v1/editproduct/", authmiddlewareControll.verifyUserandAdmin, awsUpload.fields([{ name: 'model3d', maxCount: 1 }]), adminController.editProduct);
-Adminrouter.delete("/api/v1/deleteproduct/", authmiddlewareControll.verifyUserandAdmin, adminController.deleteProduct);
+Adminrouter.put("/api/v1/editproduct/:productId", authmiddlewareControll.verifyUserandAdmin, updateUpload.fields([
+    { name: 'images', maxCount: 5 },
+    { name: 'model3d', maxCount: 1 }
+]), handleFileUpdates, adminController.editProduct);
+Adminrouter.delete("/api/v1/deleteproduct/:productId", authmiddlewareControll.verifyUserandAdmin, adminController.deleteProduct);
 Adminrouter.put("/api/v1/updatestock/:productId", authmiddlewareControll.verifyUserandAdmin, adminController.updateStock);
 
 // Order Management Routes
@@ -48,5 +52,8 @@ Adminrouter.get("/api/v1/category/distribution", authmiddlewareControll.verifyUs
 
 // User Statistics Route
 Adminrouter.get("/api/v1/user/stats", authmiddlewareControll.verifyUserandAdmin, adminController.getUserStats);
+
+// Category Management Routes
+Adminrouter.get("/api/v1/categories", authmiddlewareControll.verifyUserandAdmin, adminController.getAllCategories);
 
 module.exports = Adminrouter;

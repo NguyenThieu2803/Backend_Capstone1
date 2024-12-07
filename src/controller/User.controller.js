@@ -546,12 +546,11 @@ const userController = {
   deleteOrderController: async (req, res) => {
     try {
       const { orderId } = req.params;
-
       const result = await orderService.deleteOrder(orderId);
-      res.status(200).json({ success: true, message: result.message });
+      res.status(200).json({ success: true, message: "Order deleted successfully" });
     } catch (error) {
-      console.error('Error deleting order:', error);
-      res.status(500).json({ message: error.message || 'Server error' });
+      console.error("Error deleting order:", error);
+      res.status(500).json({ message: error.message || "Server error" });
     }
   },
   // Thêm phương thức để lấy sản phẩm theo category
@@ -647,12 +646,27 @@ const userController = {
 
   updateAddress: async (req, res) => {
     try {
-      const { addressId } = req.body;
-      const address = await addressService.updateAddress(req.user.id, addressId, req.body);
-      res.status(200).json({ message: "Address updated successfully", address });
+      const userId = req.user.id;
+      const { addressId } = req.params; // Ensure addressId is obtained from params
+      const updateData = req.body;
+
+      const updatedAddress = await addressService.updateAddress(
+        userId,
+        addressId,
+        updateData
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Address updated successfully",
+        data: updatedAddress
+      });
     } catch (error) {
       console.error("Error updating address:", error.message);
-      res.status(500).json({ message: error.message || "Server error" });
+      res.status(500).json({
+        success: false,
+        message: error.message || "Server error"
+      });
     }
   },
 
@@ -777,7 +791,7 @@ const userController = {
       if (!deliveredOrders || deliveredOrders.length === 0) {
         return res.status(404).json({
           success: false,
-          message: "Không tìm thấy đơn hàng đã giao và đã thanh toán"
+          message: "Không tìm thấy đơn hàng đã giao và đ thanh toán"
         });
       }
   

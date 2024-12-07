@@ -153,12 +153,8 @@ const getOrdersByUserId = async (userId) => {
     throw new Error(error.message || 'Error fetching orders');
   }
 };
-const deleteOrder = async (userId,orderId) => {
+const deleteOrder = async (orderId) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      throw new Error('Invalid order ID');
-    }
-
     const result = await Order.findByIdAndDelete(orderId);
     if (!result) {
       throw new Error('Order not found');
