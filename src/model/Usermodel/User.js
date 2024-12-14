@@ -28,8 +28,8 @@ const userSchema = mongoose.Schema({
   },
   role: {
     type: Number,
-    default: 1,  // 1 for normal user, 0 for admin
-    enum: [0, 1]  // Only allow these values
+    default: 1,  // 0: Admin, 1: Customer, 2: Moderator
+    enum: [0, 1, 2]
   },
   wishlist: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -64,7 +64,22 @@ const userSchema = mongoose.Schema({
   lastLogin: {
     type: Date,
     default: Date.now
+  },
+  status: {
+    type: String,
+    enum: ['Active', 'Inactive'],
+    default: 'Active'
   }
-}, { timestamps: true });
+}, { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Thêm virtual field để tính active status
+userSchema.virtual('isActive').get(function() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    return this.lastLogin > thirtyDaysAgo;
+});
 
 module.exports = mongoose.model('User', userSchema);

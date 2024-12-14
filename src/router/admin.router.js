@@ -28,6 +28,8 @@ Adminrouter.put("/api/v1/processreturnorrefund/", authmiddlewareControll.verifyU
 Adminrouter.get("/api/v1/orders/analytics", authmiddlewareControll.verifyUserandAdmin, adminController.getOrderAnalytics);
 Adminrouter.get("/api/v1/orders/stats", authmiddlewareControll.verifyUserandAdmin, adminController.getOrderStats);
 Adminrouter.get("/api/v1/orders/analytics", authmiddlewareControll.verifyUserandAdmin, adminController.getOrderAnalytics);
+Adminrouter.get("/api/v1/orders/status-distribution", authmiddlewareControll.verifyUserandAdmin, adminController.getOrderStatusDistribution);
+Adminrouter.get("/api/v1/orders/daily", authmiddlewareControll.verifyUserandAdmin, adminController.getDailyOrders);
 
 // User Management Routes
 Adminrouter.get("/api/v1/users", authmiddlewareControll.verifyUserandAdmin, adminController.getAllUsers);
@@ -55,5 +57,12 @@ Adminrouter.get("/api/v1/user/stats", authmiddlewareControll.verifyUserandAdmin,
 
 // Category Management Routes
 Adminrouter.get("/api/v1/categories", authmiddlewareControll.verifyUserandAdmin, adminController.getAllCategories);
+
+// User Dashboard Routes
+Adminrouter.get("/api/v1/users/dashboard", authmiddlewareControll.verifyUserandAdmin, adminController.getUsersDashboard);
+Adminrouter.get("/api/v1/users/list", authmiddlewareControll.verifyUserandAdmin, adminController.getUsersList);
+Adminrouter.post("/api/v1/users", authmiddlewareControll.verifyUserandAdmin, adminController.addUser);
+Adminrouter.put("/api/v1/users/:userId", authmiddlewareControll.verifyUserandAdmin, adminController.editUser);
+Adminrouter.delete("/api/v1/users/:userId", authmiddlewareControll.verifyUserandAdmin, adminController.deleteUser);
 
 module.exports = Adminrouter;

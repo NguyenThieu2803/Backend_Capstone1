@@ -180,10 +180,79 @@ const autoUpdateDeliveryStatus = async () => {
   }
 };
 
+const getOrderStatusDistribution = async () => {
+  try {
+    // First, get total count of orders
+    const totalOrders = await Order.countDocuments();
+    
+    const statusDistribution = await Order.aggregate([
+      {
+        $group: {
+          _id: "$delivery_status",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          status: "$_id",
+          percentage: {
+            $multiply: [
+              { $divide: ["$count", totalOrders] },
+              100
+            ]
+          }
+        }
+      }
+    ]);
+
+    return statusDistribution.map(item => ({
+      status: item.status,
+      percentage: parseFloat(item.percentage.toFixed(2))
+    }));
+  } catch (error) {
+    throw new Error("Error fetching order status distribution: " + error.message);
+  }
+};
+
+const getDailyOrders = async () => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const dailyOrders = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%m/%d", date: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { "_id": 1 }
+      }
+    ]);
+
+    return dailyOrders.map(item => ({
+      date: item._id,
+      Orders: item.count
+    }));
+  } catch (error) {
+    throw new Error("Error fetching daily orders: " + error.message);
+  }
+};
+
 module.exports = {
   createOrder,
   updateOrder,
   getOrdersByUserId,
   deleteOrder,
   autoUpdateDeliveryStatus,
+  getOrderStatusDistribution,
+  getDailyOrders,
 };

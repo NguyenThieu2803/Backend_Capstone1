@@ -68,7 +68,7 @@ const adminController = {
             console.log('New product data:', newProduct); // Debug log
 
             const savedProduct = await newProduct.save();
-    
+
             const inventory = new Inventory({
                 productId: savedProduct._id,
                 name: savedProduct.name,
@@ -79,9 +79,9 @@ const adminController = {
                 material: savedProduct.material,
                 color: savedProduct.color
             });
-    
+
             await inventory.save();
-    
+
             res.status(201).json({
                 success: true,
                 message: 'Product created successfully',
@@ -146,7 +146,7 @@ const adminController = {
             const { productId } = req.params;
             const updateData = { ...req.body };
 
-            // Kiểm tra sự tồn t�i của sản phẩm
+            // Validate product existence
             const existingProduct = await Product.findById(productId);
             if (!existingProduct) {
                 return res.status(404).json({
@@ -155,62 +155,63 @@ const adminController = {
                 });
             }
 
-            // Xử lý các trường đặc biệt
+            // Process special fields
             if (updateData.dimensions) {
-                try {
-                    updateData.dimensions = typeof updateData.dimensions === 'string' 
-                        ? JSON.parse(updateData.dimensions)
-                        : updateData.dimensions;
-                } catch (error) {
-                    console.error('Error parsing dimensions:', error);
-                }
+                updateData.dimensions = JSON.parse(updateData.dimensions);
             }
-
-            // Chuyển đổi kiểu dữ liệu
             if (updateData.price) updateData.price = parseFloat(updateData.price);
             if (updateData.stockQuantity) updateData.stockQuantity = parseInt(updateData.stockQuantity);
             if (updateData.discount) updateData.discount = parseFloat(updateData.discount);
             if (updateData.weight) updateData.weight = parseFloat(updateData.weight);
-            if (updateData.assemblyRequired !== undefined) {
-                updateData.assemblyRequired = updateData.assemblyRequired === true || updateData.assemblyRequired === 'true';
+            if (updateData.assemblyRequired) {
+                updateData.assemblyRequired = updateData.assemblyRequired === 'true';
             }
 
-            // Cập nhật sản phẩm
+            // Handle file uploads
+            if (req.files) {
+                if (req.files.images?.length > 0) {
+                    updateData.images = [...existingProduct.images];
+                    const newImages = req.files.images.map(file => file.path || file.location);
+                    updateData.images.push(...newImages);
+                }
+                if (req.files.model3d?.length > 0) {
+                    updateData.model3d = req.files.model3d[0].location;
+                }
+            }
+
+            // Update product
             const updatedProduct = await Product.findByIdAndUpdate(
                 productId,
                 { $set: updateData },
                 { new: true, runValidators: true }
             );
 
-            // Cập nhật inventory tư�ng ứng
-            await Inventory.findOneAndUpdate(
+            // Update inventory
+            const inventoryUpdate = {
+                name: updateData.name,
+                stockQuantity: updateData.stockQuantity,
+                price: updateData.price,
+                category: updateData.category,
+                brand: updateData.brand,
+                material: updateData.material
+            };
+
+            const updatedInventory = await Inventory.findOneAndUpdate(
                 { productId: productId },
-                {
-                    name: updateData.name,
-                    stockQuantity: updateData.stockQuantity,
-                    price: updateData.price,
-                    category: updateData.category,
-                    brand: updateData.brand,
-                    material: updateData.material
-                },
+                inventoryUpdate,
                 { new: true }
             );
 
-            // Lấy thông tin category
-            let categoryInfo = null;
-            if (updatedProduct.category) {
-                categoryInfo = await Category.findById(updatedProduct.category)
-                    .select('name description')
-                    .lean();
-            }
+            // Get category information
+            const categoryInfo = await Category.findOne({ name: updatedProduct.category }).lean();
 
-            // Response thành công
             res.status(200).json({
                 success: true,
                 message: 'Product updated successfully',
                 data: {
                     ...updatedProduct.toObject(),
-                    categoryInfo: categoryInfo || { name: updatedProduct.category }
+                    categoryInfo: categoryInfo || { name: updatedProduct.category },
+                    inventoryInfo: updatedInventory
                 }
             });
 
@@ -228,7 +229,7 @@ const adminController = {
     deleteProduct: async (req, res) => {
         try {
             const { productId } = req.params;
-            
+
             // Delete product
             const deletedProduct = await Product.findByIdAndDelete(productId);
             if (!deletedProduct) {
@@ -258,14 +259,14 @@ const adminController = {
         try {
             // Total Products
             const totalProducts = await Product.countDocuments();
-    
+
             // Top Selling Products
             const topSelling = await Product.find().sort({ sold: -1 }).limit(1);
             const topSellingCount = topSelling.length > 0 ? topSelling[0].sold : 0;
-    
+
             // Low Stock Products
             const lowStockCount = await Product.countDocuments({ stockQuantity: { $lt: 10 } });
-    
+
             // Total Revenue
             const totalRevenueResult = await Product.aggregate([
                 {
@@ -276,7 +277,7 @@ const adminController = {
                 }
             ]);
             const totalRevenue = totalRevenueResult[0]?.totalRevenue || 0;
-    
+
             res.status(200).json({
                 success: true,
                 stats: {
@@ -286,7 +287,7 @@ const adminController = {
                     totalRevenue: parseFloat(totalRevenue.toFixed(2))
                 }
             });
-    
+
         } catch (error) {
             console.error('Error fetching product stats:', error);
             res.status(500).json({
@@ -297,7 +298,7 @@ const adminController = {
         }
     },
 
-    
+
 
     // Get Order by ID
     getOrderById: async (req, res) => {
@@ -384,7 +385,7 @@ const adminController = {
 
             // Find and update the order
             const order = await Order.findById(orderId);
-            
+
             if (!order) {
                 return res.status(404).json({
                     success: false,
@@ -575,8 +576,8 @@ const adminController = {
     // Get All Products
     getAllProducts: async (req, res) => {
         try {
-            const { 
-                page = 1, 
+            const {
+                page = 1,
                 limit = 5,
                 search = '',
                 category = '',
@@ -586,7 +587,7 @@ const adminController = {
 
             // Build query
             const query = {};
-            
+
             if (search) {
                 query.$or = [
                     { name: { $regex: search, $options: 'i' } },
@@ -679,7 +680,7 @@ const adminController = {
 
             // Get inventory information
             const inventory = await Inventory.findOne({ productId: productId }).lean();
-            
+
             // Get category information
             const category = await Category.findOne({ name: product.category }).lean();
 
@@ -828,7 +829,7 @@ const adminController = {
     getSalesAnalytics: async (req, res) => {
         try {
             const startDate = new Date(new Date().setMonth(new Date().getMonth() - 12));
-            
+
             const monthlySales = await Order.aggregate([
                 {
                     $match: {
@@ -889,10 +890,12 @@ const adminController = {
             // Aggregate pipeline to get sales by category
             const salesByCategory = await Order.aggregate([
                 // Only include completed orders
-                { $match: { 
-                    paymentStatus: "completed",
-                    deliveryStatus: "delivered"
-                }},
+                {
+                    $match: {
+                        paymentStatus: "completed",
+                        deliveryStatus: "delivered"
+                    }
+                },
                 // Unwind products array to work with individual products
                 { $unwind: "$products" },
                 // Lookup to get product details
@@ -1055,8 +1058,8 @@ const adminController = {
                         ],
                         // Pending Orders
                         'pendingOrders': [
-                            { 
-                                $match: { 
+                            {
+                                $match: {
                                     payment_status: 'Pending'
                                 }
                             },
@@ -1064,8 +1067,8 @@ const adminController = {
                         ],
                         // Completed Orders
                         'completedOrders': [
-                            { 
-                                $match: { 
+                            {
+                                $match: {
                                     payment_status: 'Completed'
                                 }
                             },
@@ -1137,7 +1140,7 @@ const adminController = {
                     $sort: { _id: 1 }
                 }
             ]);
-    
+
             // Get order status distribution
             const statusDistribution = await Order.aggregate([
                 {
@@ -1154,16 +1157,16 @@ const adminController = {
                     }
                 }
             ]);
-    
+
             // Calculate total orders for percentage
             const totalOrders = statusDistribution.reduce((acc, curr) => acc + curr.count, 0);
-    
+
             // Add percentage to each status
             const statusWithPercentage = statusDistribution.map(status => ({
                 ...status,
                 percentage: ((status.count / totalOrders) * 100).toFixed(2)
             }));
-    
+
             res.status(200).json({
                 success: true,
                 data: {
@@ -1171,7 +1174,7 @@ const adminController = {
                     statusDistribution: statusWithPercentage
                 }
             });
-    
+
         } catch (error) {
             console.error('Error fetching order analytics:', error);
             res.status(500).json({
@@ -1189,9 +1192,9 @@ const adminController = {
                 .sort({ order_date: -1 })
                 .skip((page - 1) * limit)
                 .limit(parseInt(limit));
-    
+
             const totalOrders = await Order.countDocuments();
-    
+
             res.status(200).json({
                 success: true,
                 data: orders,
@@ -1303,9 +1306,9 @@ const adminController = {
                 {
                     $group: {
                         _id: "$category",
-                        totalRevenue: { 
-                            $sum: { 
-                                $multiply: ["$amount", "$quantity"] 
+                        totalRevenue: {
+                            $sum: {
+                                $multiply: ["$amount", "$quantity"]
                             }
                         },
                         totalOrders: { $sum: 1 },
@@ -1336,10 +1339,10 @@ const adminController = {
                     id: cat._id,
                     foundName: categoryName
                 });
-                
+
                 return {
                     category: categoryName || 'Unknown Category',
-                    percentage: categoryStats[0]?.totalRevenue[0]?.total > 0 
+                    percentage: categoryStats[0]?.totalRevenue[0]?.total > 0
                         ? parseFloat(((cat.totalRevenue / categoryStats[0].totalRevenue[0].total) * 100).toFixed(1))
                         : 0,
                     totalRevenue: parseFloat(cat.totalRevenue.toFixed(2)),
@@ -1440,46 +1443,64 @@ const adminController = {
     // Add New User
     addUser: async (req, res) => {
         try {
-            const { user_name, email, password, role } = req.body;
+            // Validate required fields
+            const { user_name, email, password } = req.body;
+            let role = req.body.role; // Changed from const to let
+
+            if (!user_name || !email || !password) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please provide all required fields: user_name, email, and password"
+                });
+            }
 
             // Check if email already exists
             const existingUser = await User.findOne({ email });
             if (existingUser) {
-                return res.status(400).json({
+                return res.status(409).json({
                     success: false,
-                    message: 'Email already registered'
+                    message: "Email already registered"
                 });
+            }
+
+            // Convert role string to number
+            if (role === 'Customer') {
+                role = 1;
+            } else if (role === 'Admin') {
+                role = 0;
+            } else {
+                role = 2; // Default or Moderator
             }
 
             // Hash password
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
 
-            const newUser = new User({
-                user_name,
-                email,
+            // Create new user
+            const newUser = await User.create({ 
+                user_name, 
+                email, 
                 password: hashedPassword,
-                role: role || 'Customer',
+                role,
                 isActive: true,
                 lastLogin: new Date()
             });
 
-            await newUser.save();
+            // Remove password from response
+            const userResponse = newUser.toObject();
+            delete userResponse.password;
 
             res.status(201).json({
                 success: true,
-                message: 'User created successfully',
-                user: {
-                    name: newUser.user_name,
-                    email: newUser.email,
-                    role: newUser.role,
-                    status: newUser.isActive ? 'Active' : 'Inactive'
-                }
+                message: "User created successfully",
+                user: userResponse
             });
+
         } catch (error) {
+            console.error('Error creating user:', error);
             res.status(500).json({
                 success: false,
-                message: 'Error creating user',
+                message: "Error creating user",
                 error: error.message
             });
         }
@@ -1620,6 +1641,141 @@ const adminController = {
             });
         }
     },
+
+    getUsersDashboard: async (req, res) => {
+        try {
+            const today = new Date();
+            const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+
+            // Tổng số users
+            const totalUsers = await User.countDocuments();
+
+            // Users mới trong ngày
+            const newUsersToday = await User.countDocuments({
+                createdAt: { $gte: startOfDay }
+            });
+
+            // Users active (đăng nhập trong 7 ngày qua)
+            const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const activeUsers = await User.countDocuments({
+                lastLogin: { $gte: sevenDaysAgo }
+            });
+
+            // Tính Churn Rate (Users không active trong 30 ngày)
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const inactiveUsers = await User.countDocuments({
+                lastLogin: { $lt: thirtyDaysAgo }
+            });
+            const churnRate = ((inactiveUsers / totalUsers) * 100).toFixed(1);
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    totalUsers,
+                    newUsersToday,
+                    activeUsers,
+                    churnRate: `${churnRate}%`
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching users dashboard:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching users dashboard',
+                error: error.message
+            });
+        }
+    },
+
+    getUsersList: async (req, res) => {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 5;
+            const search = req.query.search || '';
+
+            const query = {
+                $or: [
+                    { user_name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ]
+            };
+
+            // Tổng số users thỏa mãn điều kiện search
+            const total = await User.countDocuments(query);
+
+            // Lấy danh sách users với phân trang
+            const users = await User.find(query)
+                .select('_id user_name email role isBlocked lastLogin createdAt')
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit);
+
+            // Format dữ liệu trả về
+            const formattedUsers = users.map(user => ({
+                id: user._id,
+                name: user.user_name,
+                email: user.email,
+                role: user.role === 0 ? 'Admin' : user.role === 1 ? 'Customer' : 'Moderator',
+                status: user.isBlocked ? 'Inactive' : 'Active',
+                lastLogin: user.lastLogin,
+                createdAt: user.createdAt
+            }));
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    users: formattedUsers,
+                    pagination: {
+                        currentPage: page,
+                        totalPages: Math.ceil(total / limit),
+                        totalUsers: total,
+                        limit
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching users list:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching users list',
+                error: error.message
+            });
+        }
+    },
+
+    getOrderStatusDistribution: async (req, res) => {
+        try {
+            const distribution = await orderService.getOrderStatusDistribution();
+            res.status(200).json({
+                success: true,
+                data: distribution
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Error fetching order status distribution",
+                error: error.message
+            });
+        }
+    },
+
+    getDailyOrders: async (req, res) => {
+        try {
+            const dailyOrders = await orderService.getDailyOrders();
+            res.status(200).json({
+                success: true,
+                data: dailyOrders
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Error fetching daily orders",
+                error: error.message
+            });
+        }
+    }
 };
 
 module.exports = adminController;
