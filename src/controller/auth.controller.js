@@ -405,6 +405,50 @@ const authController = {
       res.status(500).json({ message: 'Server error during social login' });
     }
   },
+
+  firebaseSocialLogin: async (req, res) => {
+    try {
+      const { firebaseToken } = req.body;
+
+      // Verify Firebase token
+      const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+      const { uid, email, name, picture } = decodedToken;
+
+      // Check if user already exists
+      let user = await User.findOne({ email });
+
+      if (!user) {
+        // Create new user if not exists
+        user = new User({
+          user_name: name,
+          email: email,
+          profileImage: picture,
+          firebaseUid: uid,
+          role: 1, // Default role, adjust as needed
+        });
+        await user.save();
+      }
+
+      // Generate access and refresh tokens
+      const accessToken = authController.generateAcessToken(user);
+      const refreshToken = authController.generateRefreshToken(user);
+
+      res.status(200).json({
+        message: 'Social login successful!',
+        accessToken,
+        refreshToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.user_name,
+          profileImage: user.profileImage,
+        },
+      });
+    } catch (error) {
+      console.error('Error in social login:', error);
+      res.status(500).json({ message: 'Server error during social login' });
+    }
+  },
 }
 
 module.exports = authController;

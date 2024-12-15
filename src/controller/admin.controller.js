@@ -12,7 +12,7 @@ const Category = require("../model/Usermodel/Category");
 const multer = require("multer");
 const path = require("path");
 const { serviceAddToCart, ServiceGetallCartByUser, serviceUpdateCartItem, serviceDeleteCartItem } = require("../service/cart.service");
-const orderService = require("../service/Order.service"); // Ensure correct import
+const orderService = require("../service/order.service"); // Ensure correct import
 const cardService = require("../service/Card.service"); // Ensure correct import
 const addressService = require("../service/Address.service"); // Import address service
 const { STRIPE_CONFIG } = require("../config/config");
@@ -331,19 +331,28 @@ const adminController = {
     // Get All Orders
     getAllOrders: async (req, res) => {
         try {
-            // Fetch all orders from the database with correct field names
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            // Get total orders count first
+            const totalOrders = await Order.countDocuments();
+
+            // Fetch paginated orders
             const orders = await Order.find()
-                .populate('user_id', 'user_name email') // Changed from userId to user_id
+                .populate('user_id', 'user_name email')
                 .populate({
                     path: 'products.product',
-                    select: 'name price images' // Added images field
+                    select: 'name price images'
                 })
-                .sort({ createdAt: -1 }); // Sort by creation date, newest first
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit);
 
             // Format the response data
             const formattedOrders = orders.map(order => ({
                 id: order._id,
-                user: order.user_id, // This will contain user_name and email
+                user: order.user_id,
                 products: order.products,
                 totalAmount: order.total_amount,
                 paymentStatus: order.payment_status,
@@ -355,8 +364,17 @@ const adminController = {
 
             res.status(200).json({
                 success: true,
-                count: orders.length,
-                data: formattedOrders,
+                data: {
+                    orders: formattedOrders,
+                    pagination: {
+                        currentPage: page,
+                        totalPages: Math.ceil(totalOrders / limit),
+                        totalOrders,
+                        limit,
+                        hasNextPage: page < Math.ceil(totalOrders / limit),
+                        hasPrevPage: page > 1
+                    }
+                },
                 message: 'Orders retrieved successfully'
             });
         } catch (error) {
@@ -880,6 +898,83 @@ const adminController = {
             res.status(500).json({
                 success: false,
                 message: 'Error fetching sales analytics',
+                error: error.message
+            });
+        }
+    },
+
+    getSalesByyCategory: async (req, res) => {
+        try {
+            // First get categories for reference
+            const categories = await Category.find().lean();
+            const categoryMap = new Map(categories.map(cat => [cat._id.toString(), cat.name]));
+
+            // Aggregate pipeline to get sales data by category
+            const salesData = await Order.aggregate([
+                {
+                    $match: {
+                        payment_status: "Completed",
+                        delivery_status: "Delivered"
+                    }
+                },
+                { $unwind: "$products" },
+                {
+                    $lookup: {
+                        from: "products",
+                        localField: "products.product",
+                        foreignField: "_id",
+                        as: "productData"
+                    }
+                },
+                { $unwind: "$productData" },
+                {
+                    $group: {
+                        _id: "$productData.category",
+                        Value: {
+                            $sum: {
+                                $multiply: [
+                                    { $toDouble: "$products.price" },
+                                    { $toDouble: "$products.quantity" }
+                                ]
+                            }
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        name: { 
+                            $convert: {
+                                input: "$_id",
+                                to: "string",
+                                onError: "Unknown Category"
+                            }
+                        },
+                        Value: { $round: ["$Value", 2] },
+                        _id: 0
+                    }
+                },
+                { $sort: { Value: -1 } }
+            ]);
+
+            // Transform the data to use category names instead of IDs
+            const formattedData = salesData.map(item => ({
+                name: categoryMap.get(item.name) || "Unknown Category",
+                Value: item.Value
+            }));
+
+            // Filter out categories with 0 value
+            const nonZeroSales = formattedData.filter(item => item.Value > 0);
+
+            res.status(200).json({
+                success: true,
+                data: nonZeroSales.length > 0 ? nonZeroSales : formattedData.slice(0, 5)
+            });
+
+        } catch (error) {
+            console.error('Error fetching sales by category:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching sales by category',
                 error: error.message
             });
         }
@@ -1775,7 +1870,230 @@ const adminController = {
                 error: error.message
             });
         }
-    }
+    },
+
+    getSalesMetrics: async (req, res) => {
+        try {
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+
+            // Get current month sales
+            const currentMonthSales = await Order.aggregate([
+                {
+                    $match: {
+                        order_date: { $gte: firstDayOfMonth },
+                        payment_status: 'Completed'
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: '$total_amount' },
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            // Get last month sales
+            const lastMonthSales = await Order.aggregate([
+                {
+                    $match: {
+                        order_date: {
+                            $gte: firstDayOfLastMonth,
+                            $lte: lastDayOfLastMonth
+                        },
+                        payment_status: 'Completed'
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: '$total_amount' },
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            // Get all-time metrics
+            const allTimeMetrics = await Order.aggregate([
+                {
+                    $match: {
+                        payment_status: 'Completed'
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalRevenue: { $sum: '$total_amount' },
+                        totalOrders: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            // Calculate metrics
+            const currentMonthTotal = currentMonthSales[0]?.total || 0;
+            const lastMonthTotal = lastMonthSales[0]?.total || 0;
+            const salesGrowth = lastMonthTotal ? 
+                ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 
+                100;
+
+            const totalRevenue = allTimeMetrics[0]?.totalRevenue || 0;
+            const totalOrders = allTimeMetrics[0]?.totalOrders || 0;
+            const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    salesGrowth: {
+                        percentage: parseFloat(salesGrowth.toFixed(2)),
+                        currentMonth: parseFloat(currentMonthTotal.toFixed(2)),
+                        lastMonth: parseFloat(lastMonthTotal.toFixed(2))
+                    },
+                    averageOrderValue: parseFloat(avgOrderValue.toFixed(2)),
+                    totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+                    metrics: {
+                        totalOrders,
+                        currentMonthOrders: currentMonthSales[0]?.count || 0,
+                        lastMonthOrders: lastMonthSales[0]?.count || 0
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Error calculating sales metrics:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error calculating sales metrics',
+                error: error.message
+            });
+        }
+    },
+
+    getSalesOverview: async (req, res) => {
+        try {
+            const currentDate = new Date();
+            const startOfYear = new Date(currentDate.getFullYear(), 0, 1);
+
+            const salesData = await Order.aggregate([
+                {
+                    $match: {
+                        order_date: { $gte: startOfYear },
+                        payment_status: 'Completed'
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $month: "$order_date" },
+                        revenue: { $sum: "$total_amount" },
+                        orders: { $sum: 1 }
+                    }
+                },
+                { $sort: { "_id": 1 } }
+            ]);
+
+            // Calculate year-over-year growth
+            const lastYearStartDate = new Date(currentDate.getFullYear() - 1, 0, 1);
+            const lastYearEndDate = new Date(currentDate.getFullYear() - 1, 11, 31);
+
+            const lastYearSales = await Order.aggregate([
+                {
+                    $match: {
+                        order_date: {
+                            $gte: lastYearStartDate,
+                            $lte: lastYearEndDate
+                        },
+                        payment_status: 'Completed'
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalRevenue: { $sum: "$total_amount" }
+                    }
+                }
+            ]);
+
+            const currentYearTotal = salesData.reduce((acc, month) => acc + month.revenue, 0);
+            const lastYearTotal = lastYearSales[0]?.totalRevenue || 0;
+            const yearOverYearGrowth = lastYearTotal ? 
+                ((currentYearTotal - lastYearTotal) / lastYearTotal) * 100 : 0;
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    monthlySales: salesData.map(month => ({
+                        month: month._id,
+                        revenue: parseFloat(month.revenue.toFixed(2)),
+                        orders: month.orders
+                    })),
+                    yearOverYearGrowth: parseFloat(yearOverYearGrowth.toFixed(2)),
+                    totalRevenue: parseFloat(currentYearTotal.toFixed(2))
+                }
+            });
+
+        } catch (error) {
+            console.error('Error fetching sales overview:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching sales overview',
+                error: error.message
+            });
+        }
+    },
+
+    getDailySalesTrend: async (req, res) => {
+        try {
+            const last7Days = new Date();
+            last7Days.setDate(last7Days.getDate() - 6); // Get last 7 days including today
+
+            const dailySales = await Order.aggregate([
+                {
+                    $match: {
+                        order_date: { $gte: last7Days },
+                        payment_status: 'Completed'
+                    }
+                },
+                {
+                    $group: {
+                        _id: {
+                            $dateToString: { format: "%Y-%m-%d", date: "$order_date" }
+                        },
+                        Sales: { $sum: "$total_amount" }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        date: "$_id",
+                        Sales: { $round: ["$Sales", 2] }
+                    }
+                },
+                { $sort: { date: 1 } }
+            ]);
+
+            // Format dates to day names
+            const formattedData = dailySales.map(item => ({
+                name: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
+                Sales: item.Sales
+            }));
+
+            res.status(200).json({
+                success: true,
+                data: formattedData
+            });
+
+        } catch (error) {
+            console.error('Error fetching daily sales trend:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching daily sales trend',
+                error: error.message
+            });
+        }
+    },
+
 };
 
 module.exports = adminController;

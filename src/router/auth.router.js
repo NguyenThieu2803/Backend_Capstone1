@@ -20,8 +20,7 @@ router.put('/api/auth/users/avatar', authmiddlewareControll.verifyUser, uploadCl
 router.get('/api/auth/users/profile', authmiddlewareControll.verifyUser, authController.getUserProfile)
 
 router.post('/api/auth/social-login', authController.socialLogin);
-
-
+router.post('/api/auth/social-login/firebase', authController.firebaseSocialLogin);
 
 
 

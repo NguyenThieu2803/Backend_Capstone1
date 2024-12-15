@@ -61,4 +61,7 @@ router.get("/api/v1/search", userController.searchProducts);
 // AR Model routes
 router.get("/api/v1/ar/model/:productId", userController.getARModel);
 
+
+
+
 module.exports = router;

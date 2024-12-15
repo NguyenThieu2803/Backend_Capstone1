@@ -65,4 +65,9 @@ Adminrouter.post("/api/v1/users", authmiddlewareControll.verifyUserandAdmin, adm
 Adminrouter.put("/api/v1/users/:userId", authmiddlewareControll.verifyUserandAdmin, adminController.editUser);
 Adminrouter.delete("/api/v1/users/:userId", authmiddlewareControll.verifyUserandAdmin, adminController.deleteUser);
 
+// SALES ROUTES
+Adminrouter.get('/api/v1/sales-metrics', authmiddlewareControll.verifyUserandAdmin, adminController.getSalesMetrics);
+Adminrouter.get('/api/v1/sales-overview', authmiddlewareControll.verifyUserandAdmin, adminController.getSalesOverview);
+Adminrouter.get("/api/admin/sales-by-category", authmiddlewareControll.verifyUserandAdmin, adminController.getSalesByyCategory);
+Adminrouter.get("/api/admin/daily-sales-trend", authmiddlewareControll.verifyUserandAdmin, adminController.getDailySalesTrend);
 module.exports = Adminrouter;
